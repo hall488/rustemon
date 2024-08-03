@@ -68,7 +68,6 @@ pub struct Encounter {
     move_fonts: Vec<Font>,
     valid_moves: [bool; 4],
     party: Option<Party>,
-    player_pokemon: Vec<Pokemon>,
 }
 
 impl Encounter {
@@ -170,11 +169,10 @@ impl Encounter {
             move_fonts,
             valid_moves,
             party,
-            player_pokemon: player_pokemon.clone(),
         }
     }
 
-    pub fn update(&mut self, input_manager: &mut InputManager, dt: Duration, renderer: &mut Renderer) -> bool {
+    pub fn update(&mut self, pokemon: &mut Vec<Pokemon>, input_manager: &mut InputManager, dt: Duration, renderer: &mut Renderer) -> bool {
         // Handle encounter updates and input
         renderer.camera_controller.update_camera(&mut renderer.camera, cgmath::Vector3::new(0.0, 0.0, 0.0));
 
@@ -190,7 +188,7 @@ impl Encounter {
                     return false;
                 }
 
-                if self.handle_player_turn(input_manager, renderer) {
+                if self.handle_player_turn(pokemon, input_manager, renderer) {
                     return true;
                 }
             },
@@ -211,7 +209,7 @@ impl Encounter {
         return false;
     }
 
-    fn handle_player_turn(&mut self, input_manager: &mut InputManager, renderer: &mut Renderer) -> bool {
+    fn handle_player_turn(&mut self, pokemon: &mut Vec<Pokemon>, input_manager: &mut InputManager, renderer: &mut Renderer) -> bool {
         match self.menu_state {
             Some(MenuState::Main) => {
                 if let Some(key) = input_manager.get_key_on_press() {
@@ -287,9 +285,12 @@ impl Encounter {
                 }
             },
             Some(MenuState::Bag) => {
+                //throw a pokeball
+                //if pokemon is caught return true and add pokemon to party
+
             },
             Some(MenuState::Pokemon) => {
-                self.party = Some(Party::new(self.player_pokemon.clone(), true, renderer));
+                self.party = Some(Party::new(pokemon, true, renderer));
             },
             Some(MenuState::Run) => {
                 return true;

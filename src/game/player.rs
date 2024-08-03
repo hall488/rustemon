@@ -32,22 +32,11 @@ pub struct Player {
     pub last_key: Option<KeyCode>, // Last key pressed
     pub facing_direction: Vector3<f32>, // Direction of the player
     pub spot_arrival: bool,
-    pub pokemon: Vec<Pokemon>,
 }
 
 impl Player {
     pub fn new() -> Self {
         let position = Vector3::new(16.0, -12.0, 0.0);
-
-        let mut pokemon = Vec::new();
-
-        let bulbasaur = Pokemon::new("Bulbasaur".to_string(), 5);
-        let charmander = Pokemon::new("Charmander".to_string(), 6);
-        let squirtle = Pokemon::new("Squirtle".to_string(), 7);
-
-        pokemon.push(bulbasaur);
-        pokemon.push(charmander);
-        pokemon.push(squirtle);
 
         Self {
             instances: vec![
@@ -78,7 +67,6 @@ impl Player {
             last_key: None, // Initialize the last_key variable
             facing_direction: Vector3::new(0.0, -1.0, 0.0), // Initialize the direction variable
             spot_arrival: false,
-            pokemon,
         }
     }
 

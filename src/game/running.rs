@@ -137,7 +137,7 @@ impl Game {
 
 
                 // Trigger encounter
-                self.start_encounter(self.player.pokemon.clone(), pokemon, renderer);
+                self.start_encounter(pokemon, renderer);
             }
         }
     }

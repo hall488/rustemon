@@ -46,6 +46,7 @@ pub struct Game {
     pub menu: Menu,
     encounter: Option<Encounter>,
     party: Option<Party>,
+    player_pokemon: Vec<Pokemon>,
 }
 
 impl Game {
@@ -66,6 +67,16 @@ impl Game {
 
         let menu = Menu::new(&mut loader, cgmath::Vector3::new(0.0, 0.0, 0.0));
 
+        let mut player_pokemon = Vec::new();
+
+        let bulbasaur = Pokemon::new("Bulbasaur".to_string(), 5);
+        let charmander = Pokemon::new("Charmander".to_string(), 6);
+        let squirtle = Pokemon::new("Squirtle".to_string(), 7);
+
+        player_pokemon.push(bulbasaur);
+        player_pokemon.push(charmander);
+        player_pokemon.push(squirtle);
+
         Self {
             input_manager: InputManager::new(),
             player: Player::new(),
@@ -77,6 +88,7 @@ impl Game {
             menu,
             encounter: None,
             party: None,
+            player_pokemon,
         }
     }
 
@@ -148,13 +160,13 @@ impl Game {
         }
     }
 
-    pub fn start_encounter(&mut self, player_pokemon: Vec<Pokemon>, pokemon: Pokemon, renderer: &mut Renderer) {
-        self.encounter = Some(Encounter::new(&player_pokemon, pokemon, renderer));
+    pub fn start_encounter(&mut self, pokemon: Pokemon, renderer: &mut Renderer) {
+        self.encounter = Some(Encounter::new(&mut self.player_pokemon, pokemon, renderer));
         self.state = GameState::Encounter;
     }
 
     pub fn enter_party(&mut self, renderer: &mut Renderer) {
-        self.party = Some(Party::new(self.player.pokemon.clone(), false, renderer));
+        self.party = Some(Party::new(&mut self.player_pokemon, false, renderer));
         self.state = GameState::Party;
     }
 }

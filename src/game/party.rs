@@ -25,7 +25,6 @@ pub struct Slot {
 
 pub struct Party {
     pub scene: Stationary,
-    pub pokemon: Vec<Pokemon>,
     pub slots: Vec<Slot>,
     pub selected_slot: i32,
     pub cancel_button: Sprite,
@@ -116,7 +115,7 @@ impl Text {
 }
 
 impl Party {
-    pub fn new(pokemon: Vec<Pokemon>, in_battle: bool, renderer: &mut Renderer) -> Self {
+    pub fn new(pokemon: &Vec<Pokemon>, in_battle: bool, renderer: &mut Renderer) -> Self {
         let mut loader = Loader::new();
         let map_loader = loader.load_tmx_map("/home/chris/games/SirSquare/assets/party.tmx").unwrap();
         let scene = Stationary::new(&map_loader, 6);
@@ -227,7 +226,6 @@ impl Party {
 
         Self {
             scene,
-            pokemon,
             slots,
             selected_slot,
             cancel_button,
