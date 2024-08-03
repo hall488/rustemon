@@ -1,0 +1,17 @@
+[package]
+name = "SirSquare"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+winit = { version = "0.30", features = ["rwh_05"]}
+wgpu = "0.20.1"
+futures = "0.3"
+bytemuck = { version = "1.7", features = [ "derive" ] }
+tokio = { version = "1", features = ["full"] }
+image = "0.25.1"
+anyhow = "1.0"
+cgmath = "0.18.0"
+tiled = "0.12.0"
+rayon = "1.5.1"
+rand = "0.8.4"
