@@ -6,8 +6,11 @@ use winit::window::Window;
 use camera::{Camera, CameraUniform, ConfigUniform};
 use instance::Instance;
 use pipeline::create_pipeline;
-use texture_manager::TextureManager;
+use texture_manager::{TextureManager, Atlas};
 use image_loader::ImageData;
+use std::collections::HashMap;
+use sprite::Sprite;
+use window_map::WindowMapUniform;
 
 pub mod camera;
 mod vertex;
@@ -17,6 +20,7 @@ pub mod instance;
 mod texture_manager;
 pub mod image_loader;
 pub mod sprite;
+pub mod window_map;
 
 pub struct Renderer {
     surface: wgpu::Surface<'static>,
@@ -38,6 +42,10 @@ pub struct Renderer {
     num_instances: u32,
     staging_buffer: wgpu::Buffer,
     pub texture_manager: TextureManager,
+    pub texture_map: HashMap<String, Atlas>,
+    window_map_uniform: WindowMapUniform,
+    window_map_buffer: wgpu::Buffer,
+    window_map_bind_group: wgpu::BindGroup,
 }
 
 impl Renderer {
@@ -110,27 +118,23 @@ impl Renderer {
         //let diffuse_texture = texture::Texture::from_bytes(&device, &queue, diffuse_bytes, "diffuse_texture").unwrap();
 
         let mut texture_manager = TextureManager::new(&device, &queue, 16, (1024, 8000));
+        let mut texture_map = HashMap::new();
 
-        //0
-        let _ = texture_manager.load_texture("/home/chris/games/SirSquare/assets/landing.png", 32, 32, &queue, &device);
-        //1
-        let _ = texture_manager.load_texture("/home/chris/games/SirSquare/assets/player.png", 32, 32, &queue, &device);
-        //2
-        let _ = texture_manager.load_texture("/home/chris/games/SirSquare/assets/menu.png", 32, 32, &queue, &device);
-        //3
-        let _ = texture_manager.load_texture("/home/chris/games/SirSquare/assets/battle.png", 32, 32, &queue, &device);
-        //4
-        let _ = texture_manager.load_texture("/home/chris/games/SirSquare/assets/pokemon_back.png", 32, 32, &queue, &device);
-        //5
-        let _ = texture_manager.load_texture("/home/chris/games/SirSquare/assets/pokemon_front.png", 32, 32, &queue, &device);
-        //6
-        let _ = texture_manager.load_texture("/home/chris/games/SirSquare/assets/party.png", 32, 32, &queue, &device);
-        //7
-        let _ = texture_manager.load_texture("/home/chris/games/SirSquare/assets/pokemon_party.png", 32, 32, &queue, &device);
-        //8
-        let _ = texture_manager.load_texture("/home/chris/games/SirSquare/assets/white_font.png", 14, 20, &queue, &device);
-        //9
-        let _ = texture_manager.load_texture("/home/chris/games/SirSquare/assets/black_font.png", 14, 20, &queue, &device);
+        let mut add_texture = |name: &str, grid_w: u32, grid_h: u32, path: &str| {
+            texture_map.insert(name.to_string(), texture_manager.load_texture(path, grid_w, grid_h, &queue, &device).expect(""));
+        };
+
+        add_texture("landing", 32, 32, "/home/chris/games/SirSquare/assets/landing.png");
+        add_texture("player", 32, 32, "/home/chris/games/SirSquare/assets/player.png");
+        add_texture("menu", 32, 32, "/home/chris/games/SirSquare/assets/menu.png");
+        add_texture("battle", 16, 16, "/home/chris/games/SirSquare/assets/battle.png");
+        add_texture("pokemon_back", 32, 32, "/home/chris/games/SirSquare/assets/pokemon_back.png");
+        add_texture("pokemon_front", 32, 32, "/home/chris/games/SirSquare/assets/pokemon_front.png");
+        add_texture("party", 16, 16, "/home/chris/games/SirSquare/assets/party.png");
+        add_texture("pokemon_party", 32, 32, "/home/chris/games/SirSquare/assets/pokemon_party.png");
+        add_texture("white_font", 7, 11, "/home/chris/games/SirSquare/assets/white_font.png");
+        add_texture("black_font", 7, 11, "/home/chris/games/SirSquare/assets/black_font.png");
+        add_texture("debug", 16, 16, "/home/chris/games/SirSquare/assets/debug.png");
 
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Shader"),
@@ -149,7 +153,7 @@ impl Renderer {
             top: 0.5, // Top bound of the field
             znear: 0.1, // Near clipping plane
             zfar: 100.0, // Far clipping plane
-            aspect: 480.0 / 320.0,
+            aspect: 240.0 / 160.0,
         };
 
         let mut camera_uniform = CameraUniform::new();
@@ -217,10 +221,49 @@ impl Renderer {
 
         let camera_controller = camera::CameraController::new(1.0);
 
+        println!("Window size: {:?}", size);
+        // Initialize the WindowMapUniform
+        let window_map_uniform = WindowMapUniform::new(size.width as f32, size.height as f32);
+
+        let window_map_buffer = device.create_buffer_init(
+            &wgpu::util::BufferInitDescriptor {
+                label: Some("WindowMap Buffer"),
+                contents: bytemuck::cast_slice(&[window_map_uniform]),
+                usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            }
+        );
+
+        let window_map_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::VERTEX,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+            ],
+            label: Some("window_map_bind_group_layout"),
+        });
+
+        let window_map_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            layout: &window_map_bind_group_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: window_map_buffer.as_entire_binding(),
+                },
+            ],
+            label: Some("window_map_bind_group"),
+        });
+
         let render_pipeline_layout =
         device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("Render Pipeline Layout"),
-            bind_group_layouts: &[&texture_manager.bind_group_layout, &camera_bind_group_layout],
+            bind_group_layouts: &[&texture_manager.bind_group_layout, &camera_bind_group_layout, &window_map_bind_group_layout],
             push_constant_ranges: &[],
         });
 
@@ -291,13 +334,50 @@ impl Renderer {
             instance_buffer,
             num_instances,
             staging_buffer,
-            texture_manager
+            texture_manager,
+            texture_map,
+            window_map_uniform,
+            window_map_buffer,
+            window_map_bind_group,
         }
     }
 
-    pub fn load_texture(&mut self, texture_path: &str) -> Result<()> {
-        let _ = self.texture_manager.load_texture(texture_path, 32, 32, &self.queue, &self.device);
-        Ok(())
+    pub fn create_sprite(
+        &self,
+        x: f32,
+        y: f32,
+        tex_x: u32,
+        tex_y: u32,
+        tex_w: u32,
+        tex_h: u32,
+        texture_name: &str,
+        scale_x: f32,
+        scale_y: f32,
+    ) -> Result<Sprite> {
+        let atlas = self.texture_map.get(texture_name)
+            .ok_or_else(|| anyhow!("Texture name not found"))?;
+
+        //println!("Atlas: {:?}", atlas);
+        Ok(Sprite::new(
+            x,
+            y,
+            tex_x,
+            tex_y,
+            tex_w,
+            tex_h,
+            atlas.index,
+            atlas.texture_width,
+            atlas.texture_height,
+            atlas.tile_width,
+            atlas.tile_height,
+            scale_x,
+            scale_y,
+        ))
+    }
+
+    pub fn load_texture(&mut self, texture_path: &str) -> Result<Atlas> {
+        let idx = self.texture_manager.load_texture(texture_path, 32, 32, &self.queue, &self.device)?;
+        Ok(idx)
     }
 
     pub fn update_texture(&mut self, image: &ImageData, atlas_index: u32) -> Result<()> {
@@ -323,6 +403,7 @@ impl Renderer {
         self.camera_controller.update_camera(&mut self.camera, position);
         self.camera_uniform.update_view_proj(&self.camera);
         self.queue.write_buffer(&self.camera_buffer, 0, bytemuck::cast_slice(&[self.camera_uniform]));
+        self.queue.write_buffer(&self.window_map_buffer, 0, bytemuck::cast_slice(&[self.window_map_uniform]));
     }
 
     pub fn render(&mut self, dynamic_instances: &[Instance], use_cam: bool) -> Result<()> {
@@ -413,6 +494,7 @@ impl Renderer {
             render_pass.set_pipeline(&self.render_pipeline);
             render_pass.set_bind_group(0, &self.texture_manager.bind_group, &[]);
             render_pass.set_bind_group(1, &self.camera_bind_group, &[]);
+            render_pass.set_bind_group(2, &self.window_map_bind_group, &[]);
             render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
             render_pass.set_vertex_buffer(1, instance_buffer.slice(..));
             render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
@@ -426,5 +508,4 @@ impl Renderer {
     }
 
 }
-
 

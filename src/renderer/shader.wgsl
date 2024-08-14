@@ -13,6 +13,9 @@ var<uniform> camera: CameraUniform;
 @group(1) @binding(1)
 var<uniform> config: ConfigUniform;
 
+@group(2) @binding(0)
+var<uniform> window_map: CameraUniform;
+
 struct VertexInput {
     @location(0) position: vec3<f32>,
     @location(1) tex_coords: vec2<f32>,
@@ -65,7 +68,7 @@ fn vs_main(model: VertexInput, instance: InstanceInput) -> VertexOutput {
     if (config.apply_camera != 0u) {
         position = camera.view_proj * model_matrix * vec4<f32>(model.position, 1.0);
     } else {
-        position = model_matrix * vec4<f32>(model.position, 1.0);
+        position = window_map.view_proj * model_matrix * vec4<f32>(model.position, 1.0);
     }
 
     out.clip_position = position;

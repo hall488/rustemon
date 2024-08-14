@@ -1,5 +1,7 @@
 use crate::renderer::instance::Instance;
 use super::moves::{get_moves, Move};
+use crate::renderer::sprite::Sprite;
+use crate::renderer::Renderer;
 
 #[derive(Clone)]
 pub struct Pokemon {
@@ -7,14 +9,14 @@ pub struct Pokemon {
     pub level: u32,
     pub current_hp: u32,
     pub stats: Stats,
-    pub front_instances: Vec<Instance>,
-    pub back_instances: Vec<Instance>,
+    pub back_sprite: Sprite,
+    pub front_sprite: Sprite,
     pub id: u32,
     pub moves: Vec<Move>,
 }
 
 impl Pokemon {
-    pub fn new(name: String, level: u32) -> Self {
+    pub fn new(name: String, level: u32, renderer: &mut Renderer) -> Self {
 
         let id = match name.as_str() {
             "Bulbasaur" => 1,
@@ -42,18 +44,8 @@ impl Pokemon {
             _ => Stats::new(0, 0, 0, 0, 0, 0),
         };
 
-        let sprite_coords = match name.as_str() {
-            "Bulbasaur" => (0, 0, 1, 1),
-            "Ivysaur" => (2, 0, 3, 1),
-            "Venusaur" => (4, 0, 5, 1),
-            "Charmander" => (6, 0, 7, 1),
-            "Charmeleon" => (8, 0, 9, 1),
-            "Charizard" => (10, 0, 11, 1),
-            "Squirtle" => (12, 0, 13, 1),
-            "Wartortle" => (14, 0, 15, 1),
-            "Blastoise" => (16, 0, 17, 1),
-            _ => (0, 0, 0, 0),
-        };
+        //make sprite coords a function of id
+        let sprite_coords = ((id - 1) % 16 * 2, (id - 1) / 16 * 2);
 
         let moves_dict = get_moves();
         let mut moves = Vec::new();
@@ -107,82 +99,21 @@ impl Pokemon {
             _ => (),
         }
 
-        let x = 3 as f32 * 2.0/15.0 - 1.0 + 1.0/15.0;
-        let y = 4 as f32 * 2.0/10.0;
+        let x = 2.5 * 16.0;
+        let y = 3.0 * 16.0;
+        let back_sprite = renderer.create_sprite(x, y, sprite_coords.0, sprite_coords.1, 2, 2, "pokemon_back", 1.0, 1.0).expect("");
 
-        let scale = cgmath::Matrix4::from_nonuniform_scale(4.0/15.0, 4.0/10.0, 1.0);
-        let translation0 = cgmath::Matrix4::from_translation(cgmath::Vector3::new(x, 1.0 - y, 0.0));
-        let translation1 = cgmath::Matrix4::from_translation(cgmath::Vector3::new(x + 4.0/15.0, 1.0 - y, 0.0));
-        let translation2 = cgmath::Matrix4::from_translation(cgmath::Vector3::new(x, 1.0 - y - 4.0/10.0, 0.0));
-        let translation3 = cgmath::Matrix4::from_translation(cgmath::Vector3::new(x + 4.0/15.0, 1.0 - y - 4.0/10.0, 0.0));
-
-        let back_instance0 = Instance {
-            model: (translation0*scale).into(),
-            tex_index: sprite_coords.0 as u32 + sprite_coords.1 as u32 * 32,
-            atlas_index: 4,
-        };
-
-        let back_instance1 = Instance {
-            model: (translation1*scale).into(),
-            tex_index: sprite_coords.2 as u32 + sprite_coords.1 as u32 * 32,
-            atlas_index: 4,
-        };
-
-        let back_instance2 = Instance {
-            model: (translation2*scale).into(),
-            tex_index: sprite_coords.0 as u32 + sprite_coords.3 as u32 * 32,
-            atlas_index: 4,
-        };
-
-        let back_instance3 = Instance {
-            model: (translation3*scale).into(),
-            tex_index: sprite_coords.2 as u32 + sprite_coords.3 as u32 * 32,
-            atlas_index: 4,
-        };
-
-        let back_instances = vec![back_instance0, back_instance1, back_instance2, back_instance3];
-
-        let x = 9.5 as f32 * 2.0/15.0 - 1.0 + 1.0/15.0;
-        let y = 1.5 as f32 * 2.0/10.0;
-
-        let translation0 = cgmath::Matrix4::from_translation(cgmath::Vector3::new(x, 1.0 - y, 0.0));
-        let translation1 = cgmath::Matrix4::from_translation(cgmath::Vector3::new(x + 4.0/15.0, 1.0 - y, 0.0));
-        let translation2 = cgmath::Matrix4::from_translation(cgmath::Vector3::new(x, 1.0 - y - 4.0/10.0, 0.0));
-        let translation3 = cgmath::Matrix4::from_translation(cgmath::Vector3::new(x + 4.0/15.0, 1.0 - y - 4.0/10.0, 0.0));
-
-        let front_instance0 = Instance {
-            model: (translation0*scale).into(),
-            tex_index: sprite_coords.0 as u32 + sprite_coords.1 as u32 * 32,
-            atlas_index: 5,
-        };
-
-        let front_instance1 = Instance {
-            model: (translation1*scale).into(),
-            tex_index: sprite_coords.2 as u32 + sprite_coords.1 as u32 * 32,
-            atlas_index: 5,
-        };
-
-        let front_instance2 = Instance {
-            model: (translation2*scale).into(),
-            tex_index: sprite_coords.0 as u32 + sprite_coords.3 as u32 * 32,
-            atlas_index: 5,
-        };
-
-        let front_instance3 = Instance {
-            model: (translation3*scale).into(),
-            tex_index: sprite_coords.2 as u32 + sprite_coords.3 as u32 * 32,
-            atlas_index: 5,
-        };
-
-        let front_instances = vec![front_instance0, front_instance1, front_instance2, front_instance3];
+        let x = 9.0 * 16.0;
+        let y = 0.5 * 16.0;
+        let front_sprite = renderer.create_sprite(x, y, sprite_coords.0, sprite_coords.1, 2, 2, "pokemon_front", 1.0, 1.0).expect("");
 
         Self {
             name,
             level,
             current_hp: stats.hp,
             stats,
-            back_instances,
-            front_instances,
+            back_sprite,
+            front_sprite,
             id,
             moves,
         }

@@ -92,7 +92,7 @@ impl Menu {
     }
 
     pub fn update(&mut self, input_manager: &mut InputManager, player: &Player ) -> GameState {
-        let release_key = input_manager.get_release_key();
+        let release_key = input_manager.get_key_on_press();
 
         // Update menu instances positions
         for (i, offset) in self.offsets.iter().enumerate() {

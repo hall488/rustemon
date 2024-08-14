@@ -1,4 +1,6 @@
 use crate::renderer::sprite::Sprite;
+use crate::renderer::Renderer;
+use crate::renderer::instance::Instance;
 
 pub struct Font {
     pub sprites: Vec<Sprite>,
@@ -11,6 +13,8 @@ impl Font {
         y: f32,
         text: &str,
         left: bool,
+        font_type: &str,
+        renderer: &Renderer,
     ) -> Self {
 
         let mut sprites = Vec::new();
@@ -33,7 +37,7 @@ impl Font {
                 'H' => 7,  'h' => 35, '7' => 63,
                 'I' => 8,  'i' => 36, '8' => 64,
                 'J' => 9,  'j' => 37, '9' => 65,
-                'K' => 10, 'k' => 38, '!' => 66,
+                'K' => 10, 'k' => 38, ' ' => 66,
                 'L' => 11, 'l' => 39, '?' => 67,
                 'M' => 12, 'm' => 40, '/' => 88,
                 'N' => 13, 'n' => 41, '-' => 89,
@@ -56,9 +60,11 @@ impl Font {
             };
 
             let pos_x = if left {
-                x + i as f32 * 2.0 / 15.0 / 32.0 * 10.0
+                //x + i as f32 * 2.0 / 15.0 / 32.0 * 10.0
+                x + i as f32 * 5.0
             } else {
-                x - i as f32 * 2.0 / 15.0 / 32.0 * 10.0
+                //x - i as f32 * 2.0 / 15.0 / 32.0 * 10.0
+                x - i as f32 * 5.0
             };
 
             let pos_y = y;
@@ -66,25 +72,28 @@ impl Font {
             let tex_y = tex_index / 28;
             let tex_w = 1;
             let tex_h = 1;
-            let atlas_index = 9;
-            let atlas_w = 28;
-            let atlas_h = 4;
-            let scale_x = 1.0 / 0.61;
-            let scale_y = 1.0 / 2.91 * 1.6;
+            //let atlas_index = 9;
+            //let atlas_w = 28;
+            //let atlas_h = 4;
+            //let scale_x = 1.0 / 0.61;
+            //let scale_y = 1.0 / 2.91 * 1.6;
 
-            let sprite = Sprite::new(
-                pos_x,
-                pos_y,
-                tex_x,
-                tex_y,
-                tex_w,
-                tex_h,
-                atlas_index,
-                atlas_w,
-                atlas_h,
-                scale_x,
-                scale_y,
-            );
+            let sprite = renderer.create_sprite(pos_x, pos_y, tex_x, tex_y, tex_w, tex_h, font_type, 1.0, 1.0).expect("");
+            //let sprite = Sprite::new(
+            //    pos_x,
+            //    pos_y,
+            //    tex_x,
+            //    tex_y,
+            //    tex_w,
+            //    tex_h,
+            //    atlas_index,
+            //    atlas_w,
+            //    atlas_h,
+            //    16,
+            //    16,
+            //    scale_x,
+            //    scale_y,
+            //);
 
             sprites.push(sprite);
         }
@@ -92,5 +101,13 @@ impl Font {
         Self {
             sprites,
         }
+    }
+
+    pub fn instanced(&self) -> Vec<Instance> {
+        let mut instances = Vec::new();
+        for letter in &self.sprites {
+            instances.extend_from_slice(&letter.texture);
+        }
+        return instances;
     }
 }

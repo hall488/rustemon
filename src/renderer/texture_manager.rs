@@ -19,6 +19,17 @@ pub struct AtlasInfo {
     _padding2: u32,
 }
 
+#[derive(Debug)]
+pub struct Atlas {
+    pub cols: u32,
+    pub rows: u32,
+    pub tile_width: u32,
+    pub tile_height: u32,
+    pub texture_width: u32,
+    pub texture_height: u32,
+    pub index: u32,
+}
+
 pub struct TextureManager {
     texture_array: wgpu::Texture,
     texture_array_view: wgpu::TextureView,
@@ -200,7 +211,7 @@ impl TextureManager {
         Ok(())
     }
 
-    pub fn load_texture(&mut self, texture_path: &str, tile_width: u32, tile_height: u32, queue: &wgpu::Queue, device: &wgpu::Device) -> Result<()> {
+    pub fn load_texture(&mut self, texture_path: &str, tile_width: u32, tile_height: u32, queue: &wgpu::Queue, device: &wgpu::Device) -> Result<Atlas> {
         let img = image::open(texture_path).context("Failed to open texture image")?;
         let rgba = img.to_rgba8();
         let dimensions = img.dimensions();
@@ -251,8 +262,18 @@ impl TextureManager {
         // Update the buffer with the new atlas info
         queue.write_buffer(&self.atlas_info_buffer, 0, bytemuck::cast_slice(&self.atlas_infos));
 
+        let atlas = Atlas {
+            cols: dimensions.0 / tile_width,
+            rows: dimensions.1 / tile_height,
+            tile_width,
+            tile_height,
+            texture_width: dimensions.0,
+            texture_height: dimensions.1,
+            index: self.next_layer_index,
+        };
+
         self.next_layer_index += 1;
-        Ok(())
+        Ok(atlas)
     }
 
     pub fn update_texture(&mut self, image: &ImageData, layer_index: u32, queue: &wgpu::Queue, device: &wgpu::Device) -> Result<()> {

@@ -39,16 +39,27 @@ impl Stationary {
         for i in 0..tile_layer.width().unwrap() {
             for j in 0..tile_layer.height().unwrap() {
                 if let Some(tile) = tile_layer.get_tile(i as i32, j as i32) {
-                    let scale = cgmath::Matrix4::from_nonuniform_scale(2.0/15.0, 2.0/10.0, 1.0);
-                    let x = i as f32 * 2.0/15.0 - 1.0 + 1.0/15.0;
-                    let y = j as f32 * 2.0/10.0 + 1.0/10.0;
-                    let translation = cgmath::Matrix4::from_translation(cgmath::Vector3::new(x, 1.0 - y, 0.0));
+                    let scale = cgmath::Matrix4::from_nonuniform_scale(1.0, 1.0, 1.0);
+                    let x = i as f32 * 16.0;
+                    let y = j as f32 * 16.0;
+                    let translation = cgmath::Matrix4::from_translation(Vector3::new(x, y, 0.0));
                     let model = translation * scale;
                     instances.push(Instance {
                         model: model.into(),
                         tex_index: tile.id() as u32,
                         atlas_index,
                     });
+
+                    //let scale = cgmath::Matrix4::from_nonuniform_scale(2.0/15.0, 2.0/10.0, 1.0);
+                    //let x = i as f32 * 2.0/15.0 - 1.0 + 1.0/15.0;
+                    //let y = j as f32 * 2.0/10.0 + 1.0/10.0;
+                    //let translation = cgmath::Matrix4::from_translation(cgmath::Vector3::new(x, 1.0 - y, 0.0));
+                    //let model = translation * scale;
+                    //instances.push(Instance {
+                    //    model: model.into(),
+                    //    tex_index: tile.id() as u32,
+                    //    atlas_index,
+                    //});
                 }
             }
         }

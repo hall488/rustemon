@@ -42,11 +42,13 @@ impl ApplicationHandler for App {
             .with_inner_size(winit::dpi::LogicalSize::new(WIDTH, HEIGHT));
         let window = Arc::new(event_loop.create_window(window_attributes).unwrap());
 
-        let game_future = Game::new();
-        let game = futures::executor::block_on(game_future);
 
         let renderer_future = Renderer::new(Arc::clone(&window));
-        let renderer  = futures::executor::block_on(renderer_future);
+        let mut renderer  = futures::executor::block_on(renderer_future);
+
+        let game_future = Game::new(&mut renderer);
+        let game = futures::executor::block_on(game_future);
+
 
         self.window = Some(window);
         self.game = Some(game);

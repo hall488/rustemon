@@ -11,6 +11,7 @@ mod stationary_loader;
 mod party;
 mod font;
 mod moves;
+mod battle;
 
 use std::time::{Instant, Duration};
 use player::Player;
@@ -22,9 +23,12 @@ use crate::renderer::image_loader;
 use crate::renderer::instance::Instance;
 use crate::game::gamestate::GameState;
 use crate::game::menu::Menu;
-use crate::game::encounter::Encounter;
+//use crate::game::encounter::Encounter;
+use crate::game::battle::Battle;
 use pokemon::Pokemon;
 use party::Party;
+use crate::renderer::sprite::Sprite;
+use cgmath::{Matrix4, vec4, Vector4};
 
 pub struct Animation {
     pub frames: Vec<u32>,
@@ -44,13 +48,14 @@ pub struct Game {
     state: GameState,
     time_of_last_update: Instant,
     pub menu: Menu,
-    encounter: Option<Encounter>,
+    encounter: Option<Battle>,
     party: Option<Party>,
     player_pokemon: Vec<Pokemon>,
+    debug_background: Sprite,
 }
 
 impl Game {
-    pub async fn new() -> Self {
+    pub async fn new(renderer: &mut Renderer) -> Self {
         let paths = vec![
             "landing",
             "pokecenter",
@@ -69,13 +74,15 @@ impl Game {
 
         let mut player_pokemon = Vec::new();
 
-        let bulbasaur = Pokemon::new("Bulbasaur".to_string(), 5);
-        let charmander = Pokemon::new("Charmander".to_string(), 6);
-        let squirtle = Pokemon::new("Squirtle".to_string(), 7);
+        let bulbasaur = Pokemon::new("Bulbasaur".to_string(), 5, renderer);
+        let charmander = Pokemon::new("Charmander".to_string(), 6, renderer);
+        let squirtle = Pokemon::new("Squirtle".to_string(), 7, renderer);
 
         player_pokemon.push(bulbasaur);
         player_pokemon.push(charmander);
         player_pokemon.push(squirtle);
+
+        let debug_background = renderer.create_sprite(8.0, 8.0, 0, 0, 2, 2, "debug", 1.0, 1.0).expect("");
 
         Self {
             input_manager: InputManager::new(),
@@ -89,6 +96,7 @@ impl Game {
             encounter: None,
             party: None,
             player_pokemon,
+            debug_background,
         }
     }
 
@@ -103,8 +111,8 @@ impl Game {
         self.time_of_last_update = now;
 
         //if self.encounter.is_none() {
-        //    let pokemon = Pokemon::new("Charizard".to_string(), 5);
-        //    self.start_encounter(self.player.pokemon.clone(), pokemon, renderer);
+        //    let pokemon = Pokemon::new("Charizard".to_string(), 5, renderer);
+        //    self.start_encounter(pokemon, renderer);
         //}
 
         match self.state {
@@ -112,7 +120,7 @@ impl Game {
             GameState::Paused => self.paused(renderer),
             GameState::Encounter => {
                 if let Some(encounter) = &mut self.encounter {
-                    if encounter.update(&mut self.input_manager, dt, renderer) {
+                    if encounter.update(&mut self.player_pokemon, &mut self.input_manager, dt, renderer) {
                         self.state = GameState::Running;
                         self.encounter = None;
                     }
@@ -120,10 +128,15 @@ impl Game {
             },
             GameState::Party => {
                 if let Some(party) = &mut self.party {
-                    if party.update(&mut self.input_manager, dt, renderer) {
+                    //6 is just the value returned when cancel is selected
+                    if party.update(&mut self.input_manager, dt, renderer) == 6 {
                         self.state = GameState::Paused;
                     }
                 }
+            },
+            GameState::Debug => {
+                // Add debug state
+
             },
         }
     }
@@ -149,7 +162,7 @@ impl Game {
             },
             GameState::Encounter => {
                 if let Some(encounter) = &self.encounter {
-                    encounter.draw(renderer);
+                    encounter.draw(&mut self.player_pokemon, renderer);
                 }
             },
             GameState::Party => {
@@ -157,13 +170,25 @@ impl Game {
                     party.draw(renderer);
                 }
             },
+            GameState::Debug => {
+                // Add debug state
+                let mut instances = Vec::new();
+
+                instances.extend_from_slice(&self.debug_background.texture);
+
+                let _ = renderer.render(&instances, false);
+            },
         }
     }
 
     pub fn start_encounter(&mut self, pokemon: Pokemon, renderer: &mut Renderer) {
-        self.encounter = Some(Encounter::new(&mut self.player_pokemon, pokemon, renderer));
+        let enemy_pokemon = vec![pokemon.clone()];  // Clone the enemy Pokémon
+
+        // Pass the player's Pokémon by reference and the cloned enemy Pokémon by reference
+        self.encounter = Some(Battle::new(&mut self.player_pokemon, enemy_pokemon, renderer));
         self.state = GameState::Encounter;
     }
+
 
     pub fn enter_party(&mut self, renderer: &mut Renderer) {
         self.party = Some(Party::new(&mut self.player_pokemon, false, renderer));

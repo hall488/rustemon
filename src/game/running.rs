@@ -9,7 +9,6 @@ use crate::game::pokemon::Pokemon;
 use crate::game::map_loader::{Door, Map, Grass};
 use crate::renderer::instance::Instance;
 
-
 impl Game {
     pub fn running(&mut self, renderer: &mut Renderer, dt: Duration) {
         renderer.update(self.player.position);
@@ -129,14 +128,13 @@ impl Game {
                 let random_pokemon = rng.gen_range(0..3);
 
                 let pokemon = match random_pokemon {
-                    0 => Pokemon::new("Bulbasaur".to_string(), 5),
-                    1 => Pokemon::new("Charmander".to_string(), 5),
-                    2 => Pokemon::new("Squirtle".to_string(), 5),
-                    _ => Pokemon::new("MissingNo".to_string(), 5),
+                    0 => Pokemon::new("Bulbasaur".to_string(), 5, renderer),
+                    1 => Pokemon::new("Charmander".to_string(), 5, renderer),
+                    2 => Pokemon::new("Squirtle".to_string(), 5, renderer),
+                    _ => Pokemon::new("MissingNo".to_string(), 5, renderer),
                 };
 
 
-                // Trigger encounter
                 self.start_encounter(pokemon, renderer);
             }
         }
