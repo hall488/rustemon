@@ -5,6 +5,7 @@ use std::time::Instant;
 use std::fs::File;
 use std::io::{BufReader, Read};
 use super::image_loader::ImageData;
+use std::fmt;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
@@ -19,7 +20,7 @@ pub struct AtlasInfo {
     _padding2: u32,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Atlas {
     pub cols: u32,
     pub rows: u32,
@@ -28,6 +29,13 @@ pub struct Atlas {
     pub texture_width: u32,
     pub texture_height: u32,
     pub index: u32,
+}
+
+impl fmt::Display for Atlas {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Atlas(cols: {}, rows: {}, tile_width: {}, tile_height: {}, texture_width: {}, texture_height: {}, index: {})",
+               self.cols, self.rows, self.tile_width, self.tile_height, self.texture_width, self.texture_height, self.index)
+    }
 }
 
 pub struct TextureManager {
@@ -276,7 +284,7 @@ impl TextureManager {
         Ok(atlas)
     }
 
-    pub fn update_texture(&mut self, image: &ImageData, layer_index: u32, queue: &wgpu::Queue, device: &wgpu::Device) -> Result<()> {
+    pub fn update_texture(&mut self, layer_index: u32, image: &ImageData, tile_width: u32, tile_height: u32, queue: &wgpu::Queue, device: &wgpu::Device) -> Result<Atlas> {
 
         let rgba = &image.data;
         let dimensions = (image.width, image.height);
@@ -330,7 +338,16 @@ impl TextureManager {
         queue.write_buffer(&self.atlas_info_buffer, 0, bytemuck::cast_slice(&self.atlas_infos));
         println!("Buffer write time: {:?}", start_time.elapsed());
 
-        Ok(())
+        let atlas = Atlas {
+            cols: dimensions.0 / tile_width,
+            rows: dimensions.1 / tile_height,
+            tile_width,
+            tile_height,
+            texture_width: dimensions.0,
+            texture_height: dimensions.1,
+            index: layer_index,
+        };
+        Ok(atlas)
     }
 
     pub fn get_bind_group(&self) -> &wgpu::BindGroup {

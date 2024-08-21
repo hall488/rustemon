@@ -8,6 +8,7 @@ use rand::Rng;
 use crate::game::pokemon::Pokemon;
 use crate::game::map_loader::{Door, Map, Grass};
 use crate::renderer::instance::Instance;
+use super::npc::NPC;
 
 impl Game {
     pub fn running(&mut self, renderer: &mut Renderer, dt: Duration) {
@@ -15,14 +16,44 @@ impl Game {
         // Handle game updates and input
 
         let last_key = self.input_manager.get_last_key();
-        let release_key = self.input_manager.get_release_key();
+        let single_press_key = self.input_manager.get_key_on_press();
 
-        if let Some(release_key) = release_key {
-            if release_key == KeyCode::Enter {
-                self.state = GameState::Paused;
-                return;
+        if let Some(key) = single_press_key {
+            match key {
+                KeyCode::Enter => {
+                    self.state = GameState::Paused;
+                    return;
+                }
+                KeyCode::KeyZ => {
+                    //check if player is if front of interaction
+                    let mut interaction_detected: Option<&str> = None;
+
+                    for interaction in &self.map.interactions {
+                        //check if player is facing interaction
+                        if self.player.facing_direction + self.player.position == cgmath::Vector3::new(interaction.x, interaction.y, 0.0) {
+                            interaction_detected = Some(&interaction.name);
+                            break;
+                        }
+
+                    }
+
+                    if let Some(interaction) = interaction_detected {
+                        match interaction {
+                            "Heal" => {
+                                for pokemon in &mut self.player_pokemon {
+                                    pokemon.current_hp = pokemon.stats.hp;
+                                }
+                                println!("Your Pokémon have been healed!");
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+
+                _ => {}
             }
         }
+
 
         self.player.input(&last_key, &self.map.collisions);
         self.player.update(dt);
@@ -81,10 +112,7 @@ impl Game {
 
             self.map = Map::new(&map_loader, 0);
 
-            let image = self.images.get(&door.name);
-            if let Some(image) = image {
-                let _ = renderer.update_texture(&image, 0);
-            }
+            let _ = renderer.update_texture(0, &door.name, 32, 32);
 
             //search map for player spawn that matches door.location
             //the spawn name must be player also
@@ -92,6 +120,14 @@ impl Game {
 
             self.player.position = cgmath::Vector3::new(player_spawn.unwrap().x, player_spawn.unwrap().y, 0.0);
             self.player.target_position = self.player.position;
+
+            //load npcs
+            self.npcs = Vec::new();
+
+            for npc in &self.map.npcs {
+                let npc = NPC::new(cgmath::Vector3::new(npc.x, npc.y, 0.0), cgmath::Vector3::new(0.0, 0.0, 0.0), "Nurse", renderer);
+                self.npcs.push(npc);
+            }
         }
 
         //check if player collides with grass

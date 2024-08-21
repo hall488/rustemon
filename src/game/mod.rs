@@ -12,6 +12,7 @@ mod party;
 mod font;
 mod moves;
 mod battle;
+mod npc;
 
 use std::time::{Instant, Duration};
 use player::Player;
@@ -29,6 +30,7 @@ use pokemon::Pokemon;
 use party::Party;
 use crate::renderer::sprite::Sprite;
 use cgmath::{Matrix4, vec4, Vector4};
+use npc::NPC;
 
 pub struct Animation {
     pub frames: Vec<u32>,
@@ -43,7 +45,6 @@ pub struct Game {
     input_manager: InputManager,
     player: Player,
     map: map_loader::Map,
-    images: HashMap<String, image_loader::ImageData>,
     animations: Vec<Animation>,
     state: GameState,
     time_of_last_update: Instant,
@@ -52,19 +53,11 @@ pub struct Game {
     party: Option<Party>,
     player_pokemon: Vec<Pokemon>,
     debug_background: Sprite,
+    npcs: Vec<NPC>,
 }
 
 impl Game {
     pub async fn new(renderer: &mut Renderer) -> Self {
-        let paths = vec![
-            "landing",
-            "pokecenter",
-            "pokemart",
-            "menu",
-            "house_1",
-            "battle",
-        ];
-        let images = image_loader::load_images(&paths, "/home/chris/games/SirSquare/assets").unwrap();
 
         let mut loader = Loader::new();
         let map_loader = loader.load_tmx_map("/home/chris/games/SirSquare/assets/landing.tmx").unwrap();
@@ -82,13 +75,12 @@ impl Game {
         player_pokemon.push(charmander);
         player_pokemon.push(squirtle);
 
-        let debug_background = renderer.create_sprite(8.0, 8.0, 0, 0, 2, 2, "debug", 1.0, 1.0).expect("");
+        let debug_background = renderer.create_sprite(0.5 + 6.0, 6.0, 0, 0, 15, 10, "debug", 1.0/240.0*15.0, 1.0/160.0*10.0).expect("");
 
         Self {
             input_manager: InputManager::new(),
             player: Player::new(),
             map,
-            images,
             animations: Vec::new(),
             state: GameState::Running,
             time_of_last_update: Instant::now(),
@@ -97,6 +89,7 @@ impl Game {
             party: None,
             player_pokemon,
             debug_background,
+            npcs: Vec::new(),
         }
     }
 
@@ -150,6 +143,9 @@ impl Game {
                 instances.extend_from_slice(&self.map.ground);
                 instances.extend_from_slice(&self.map.foreground);
                 instances.extend_from_slice(&self.player.instances);
+                for npc in &self.npcs {
+                    instances.extend_from_slice(&npc.instances);
+                }
                 instances.extend_from_slice(&self.animations.iter().map(|animation| animation.instance).collect::<Vec<Instance>>());
                 instances.extend_from_slice(&self.map.aboveground);
 
@@ -191,7 +187,7 @@ impl Game {
 
 
     pub fn enter_party(&mut self, renderer: &mut Renderer) {
-        self.party = Some(Party::new(&mut self.player_pokemon, false, renderer));
+        self.party = Some(Party::new(&mut self.player_pokemon, false, false, renderer));
         self.state = GameState::Party;
     }
 }

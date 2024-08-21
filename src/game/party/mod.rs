@@ -24,10 +24,11 @@ pub struct Party {
     time_of_hold: Instant,
     processed_initial_press: bool,
     in_battle: bool,
+    required: bool,
 }
 
 impl Party {
-    pub fn new(pokemon: &mut Vec<Pokemon>, in_battle: bool, renderer: &mut Renderer) -> Self {
+    pub fn new(pokemon: &mut Vec<Pokemon>, required: bool, in_battle: bool, renderer: &mut Renderer) -> Self {
 
         let background = renderer.create_sprite(0.0, 0.0, 0, 0, 15, 10, "party", 1.0, 1.0).expect("");
 
@@ -54,6 +55,7 @@ impl Party {
             time_of_hold,
             processed_initial_press,
             in_battle,
+            required,
         }
     }
 
@@ -84,7 +86,7 @@ impl Party {
         }
 
         if single_press_key == Some(KeyCode::KeyZ) {
-            if self.selected_slot == self.slots.len() as i32 {
+            if self.selected_slot == self.slots.len() as i32 && !self.required {
                 return 6;
             } else {
                 return self.selected_slot as u32;

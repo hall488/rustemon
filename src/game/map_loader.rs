@@ -26,6 +26,21 @@ pub struct Spawn {
 }
 
 #[derive(Clone)]
+pub struct Npc {
+    pub name: String,
+    pub x: f32,
+    pub y: f32,
+    pub direction: Vector3<f32>,
+}
+
+#[derive(Clone)]
+pub struct Interaction {
+    pub name: String,
+    pub x: f32,
+    pub y: f32,
+}
+
+#[derive(Clone)]
 pub struct Door {
     pub rectangle: Rectangle,
     pub name: String,
@@ -47,6 +62,8 @@ pub struct Map {
     pub doors: Vec<Door>,
     pub spawns: Vec<Spawn>,
     pub grasses: Vec<Grass>,
+    pub npcs: Vec<Npc>,
+    pub interactions: Vec<Interaction>,
 }
 
 impl Map {
@@ -59,6 +76,8 @@ impl Map {
         let mut doors = Vec::new();
         let mut spawns = Vec::new();
         let mut grasses = Vec::new();
+        let mut npcs = Vec::new();
+        let mut interactions = Vec::new();
 
         for layer in map.layers() {
             if let tiled::LayerType::Tiles(tile_layer) = layer.layer_type() {
@@ -95,6 +114,12 @@ impl Map {
                     "Grasses" => {
                         Self::push_grasses(&mut grasses, &object_layer);
                     }
+                    "Npcs" => {
+                        Self::push_npcs(&mut npcs, &object_layer);
+                    }
+                    "Interactions" => {
+                        Self::push_interactions(&mut interactions, &object_layer);
+                    }
                     _ => {}
                 }
 
@@ -111,6 +136,8 @@ impl Map {
             doors,
             spawns,
             grasses,
+            npcs,
+            interactions,
         }
     }
 
@@ -170,6 +197,36 @@ impl Map {
             } as u32;
 
             spawns.push(Spawn {name, x, y, direction, location});
+        }
+    }
+
+    fn push_npcs(npcs: &mut Vec<Npc>, object_layer: &tiled::ObjectLayer) {
+        for object in object_layer.objects() {
+            let name = object.name.clone();
+            let x = object.x as f32 / 32.0;
+            let y = -1.0 * object.y as f32 / 32.0 + 1.0;
+
+            let direction = match object.properties.get("direction") {
+                Some(tiled::PropertyValue::IntValue(val)) => match val {
+                    0 => Vector3::new(0.0, 1.0, 0.0),
+                    1 => Vector3::new(1.0, 0.0, 0.0),
+                    2 => Vector3::new(0.0, -1.0, 0.0),
+                    3 => Vector3::new(-1.0, 0.0, 0.0),
+                    _ => Vector3::new(0.0, 1.0, 0.0),
+                },
+                _ => Vector3::new(0.0, 1.0, 0.0),
+            };
+
+            npcs.push(Npc {name, x, y, direction});
+        }
+    }
+
+    fn push_interactions(interactions: &mut Vec<Interaction>, object_layer: &tiled::ObjectLayer) {
+        for object in object_layer.objects() {
+            let name = object.name.clone();
+            let x = object.x as f32 / 32.0;
+            let y = -1.0 * object.y as f32 / 32.0 + 1.0;
+            interactions.push(Interaction {name, x, y});
         }
     }
 

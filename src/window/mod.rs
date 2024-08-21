@@ -65,7 +65,7 @@ impl ApplicationHandler for App {
                 if let (Some(game), Some(renderer)) = (&mut self.game, &mut self.renderer) {
                     //handle game input
                     game.input(&event);
-                    renderer.camera_controller.process_events(&event);
+                    //renderer.camera_controller.process_events(&event);
                 }
             }
             WindowEvent::RedrawRequested => {

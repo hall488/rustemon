@@ -7,7 +7,6 @@ use crate::game::GameState;
 
 pub enum MenuAction {
     Pokemon,
-    Bag,
     Save,
     Exit,
     // Add other actions here
@@ -19,10 +18,6 @@ impl MenuAction {
             MenuAction::Pokemon => {
                 println!("Pokemon action");
                 GameState::Party
-            },
-            MenuAction::Bag => {
-                println!("Bag action");
-                GameState::Paused
             },
             MenuAction::Save => {
                 println!("Save action");
@@ -84,9 +79,8 @@ impl Menu {
     fn get_action_for_option(option: u32) -> MenuAction {
         match option {
             0 => MenuAction::Pokemon,
-            1 => MenuAction::Bag,
-            2 => MenuAction::Save,
-            3 => MenuAction::Exit,
+            1 => MenuAction::Save,
+            2 => MenuAction::Exit,
             _ => MenuAction::Exit,
         }
     }
@@ -97,16 +91,16 @@ impl Menu {
         // Update menu instances positions
         for (i, offset) in self.offsets.iter().enumerate() {
             let model = cgmath::Matrix4::from_translation(cgmath::Vector3::new(
-                player.position.x + offset.x + 5.5,
-                player.position.y + offset.y + 10.0,
+                player.position.x + offset.x + 3.0,
+                player.position.y + offset.y + 4.5,
                 offset.z)).into();
             self.instances[i].model = model;
         }
 
         // Update menu pointer position
         self.pointer.model = cgmath::Matrix4::from_translation(cgmath::Vector3::new(
-            player.position.x + 5.5,
-            player.position.y + 9.0 - self.option as f32,
+            player.position.x + 3.5 + 3.0/32.0,
+            player.position.y + 4.0 + 3.0/32.0 - self.option as f32 * 30.0/32.0,
             0.0)).into();
 
         // Handle input
@@ -125,7 +119,7 @@ impl Menu {
                     }
                 },
                 KeyCode::KeyS => {
-                    if self.option < 3 { // Adjust this value based on the number of menu options
+                    if self.option < 2 { // Adjust this value based on the number of menu options
                         self.option += 1;
                     }
                 },

@@ -46,6 +46,7 @@ pub struct Renderer {
     window_map_uniform: WindowMapUniform,
     window_map_buffer: wgpu::Buffer,
     window_map_bind_group: wgpu::BindGroup,
+    pub images: HashMap<String, image_loader::ImageData>,
 }
 
 impl Renderer {
@@ -142,7 +143,7 @@ impl Renderer {
         });
 
         let camera = Camera {
-            eye: (0.0, 0.0, 2000.0).into(),
+            eye: (0.0, 0.0, 949.0).into(),
             // have it look at the origin
             target: (0.0, 0.0, 0.0).into(),
             // which way is "up"
@@ -315,6 +316,17 @@ impl Renderer {
             mapped_at_creation: false,
         });
 
+        let paths = vec![
+            "landing",
+            "pokecenter",
+            "pokemart",
+            "menu",
+            "house_1",
+            "battle",
+        ];
+
+        let images = image_loader::load_images(&paths, "/home/chris/games/SirSquare/assets").unwrap();
+
         Self {
             surface,
             device,
@@ -339,6 +351,7 @@ impl Renderer {
             window_map_uniform,
             window_map_buffer,
             window_map_bind_group,
+            images,
         }
     }
 
@@ -375,13 +388,29 @@ impl Renderer {
         ))
     }
 
+    pub fn get_atlas(&self, texture_name: &str) -> Result<&Atlas> {
+        let atlas = self.texture_map.get(texture_name)
+            .ok_or_else(|| anyhow!("Texture name not found"))?;
+        Ok(atlas)
+    }
+
     pub fn load_texture(&mut self, texture_path: &str) -> Result<Atlas> {
         let idx = self.texture_manager.load_texture(texture_path, 32, 32, &self.queue, &self.device)?;
         Ok(idx)
     }
 
-    pub fn update_texture(&mut self, image: &ImageData, atlas_index: u32) -> Result<()> {
-        let _ = self.texture_manager.update_texture(&image, atlas_index, &self.queue, &self.device);
+    pub fn update_texture(&mut self, atlas_index: u32, name: &str, grid_w: u32, grid_h: u32) -> Result<()> {
+        //remove previous texture at atlas index from texture map
+
+        let image = self.images.get(name).ok_or_else(|| anyhow!("Image not found"))?;
+        println!("Updating texture: {}", name);
+        let atlas = self.texture_manager.update_texture(atlas_index, image, grid_w, grid_h, &self.queue, &self.device).expect("");
+        println!("Atlas {}", atlas);
+        self.texture_map.insert(name.to_string(), atlas);
+        //print every atlas name in texture map
+        for (key, _) in &self.texture_map {
+            println!("Atlas name: {}", key);
+        }
         Ok(())
     }
 

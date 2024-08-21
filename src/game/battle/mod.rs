@@ -27,6 +27,9 @@ pub enum BattleState {
     EnemyTurn,
     HandleMoves,
     MoveText,
+    PlayerFaint,
+    PlayerForceSwap,
+    EnemyFaint,
 }
 
 pub trait Display {
@@ -60,7 +63,7 @@ pub enum ActionType {
         _move: Move,
     },
     Catch {
-        rate: u32,
+        ball_bonus: f32,
     },
     Swap {
         slot: u32,
@@ -73,8 +76,12 @@ impl Battle {
         println!("You encountered a level {} {}", enemy_pokemon[0].level, enemy_pokemon[0].name);
         let background = renderer.create_sprite(0.0, 0.0, 0, 0, 15, 7, "battle", 1.0, 1.0).expect("");
 
-        let ui = UI::new(&player_pokemon[0], renderer);
-        let player_display = PlayerDisplay::new(&player_pokemon[0], renderer);
+        //first non fainted pokemon
+        let first_index = player_pokemon.iter().position(|p| p.current_hp > 0).unwrap();
+        let first_pokemon = &player_pokemon[first_index];
+
+        let ui = UI::new(first_pokemon, renderer);
+        let player_display = PlayerDisplay::new(first_pokemon, renderer);
         let enemy_display = EnemyDisplay::new(&enemy_pokemon[0], renderer);
 
         let battle_state = BattleState::PlayerTurn;
@@ -83,7 +90,7 @@ impl Battle {
             battle_type: BattleType::Wild,
             battle_state,
             ui,
-            player_pokemon_index: 0,
+            player_pokemon_index: first_index,
             enemy_pokemon_index: 0,
             player_display,
             enemy_display,
@@ -118,6 +125,36 @@ impl Battle {
                     return true;
                 }
             },
+            BattleState::PlayerFaint => {
+                // Handle PlayerFaint state
+                // if player has no pokemon they lose
+                if player_party.iter().all(|p| p.current_hp == 0) {
+                    println!("Player has no more pokemon. Player loses.");
+                    return true;
+                }
+
+                //switch to next pokemon
+                self.ui.open_swap_menu(player_party, renderer);
+                self.battle_state = BattleState::PlayerForceSwap;
+            },
+            BattleState::PlayerForceSwap => {
+                // Handle PlayerForceSwap state
+                if let Some(ui_message) = self.ui.update(player_party, input_manager, dt, renderer) {
+                    match ui_message {
+                        UIMessage::Swap { slot } => {
+                            self.player_pokemon_index = slot as usize;
+                            self.player_display.swap(&player_party[self.player_pokemon_index], renderer);
+                            self.ui.update_moves(&player_party[self.player_pokemon_index], renderer);
+                            self.battle_state = BattleState::PlayerTurn;
+                        },
+                        _ => {},
+                    }
+                }
+            },
+            BattleState::EnemyFaint => {
+                // Handle EnemyFaint state
+                return true;
+            },
             BattleState::MoveText => {
                 // Handle MoveText state
             },
@@ -148,7 +185,7 @@ impl Battle {
                 },
                 UIMessage::Catch => {
                     Action {
-                        action_type: ActionType::Catch { rate: 0 },
+                        action_type: ActionType::Catch { ball_bonus: 1.0},
                         priority: 910,
                         is_player: true,
                     }
@@ -202,18 +239,40 @@ impl Battle {
                 (enemy_action, player_action)
             };
 
-            // Execute the first action
             if self.execute_action(&first_action, player_party, renderer) {
-                return true;
+
+                if let ActionType::Run = first_action.action_type {
+                    return true;
+                }
+
+                if let ActionType::Catch { .. } = first_action.action_type {
+                    //add pokemon to party
+                    player_party.push(self.enemy_party.remove(self.enemy_pokemon_index));
+                    return true;
+                }
+
+                if first_action.is_player {
+                    self.battle_state = BattleState::EnemyFaint;
+                } else {
+                    self.battle_state = BattleState::PlayerFaint;
+                }
+
+                return false;
             }
 
-            // Execute the second action if the battle hasn't ended
             if self.execute_action(&second_action, player_party, renderer) {
-                return true;
+                if second_action.is_player {
+                    self.battle_state = BattleState::EnemyFaint;
+                } else {
+                    self.battle_state = BattleState::PlayerFaint;
+                }
+                return false;
             }
+
 
             // If the battle continues, reset the state to PlayerTurn
             self.battle_state = BattleState::PlayerTurn;
+            self.ui.return_to_main();
         }
 
         false
@@ -242,25 +301,36 @@ impl Battle {
                 }
 
                 if defender.current_hp == 0 {
-                    let user = if action.is_player { "Player" } else { "Enemy" };
+                    let user = if !action.is_player { "Player" } else { "Enemy" };
                     println!("{}'s {} fainted.", user, defender.name);
+
                     return true;
                 }
             },
-            ActionType::Catch { rate } => {
-                println!("Player tried to catch with rate {}.", rate);
+            ActionType::Catch { ball_bonus } => {
+                //if catch succeeds add to party and return true
+                //print max hp and current
+                let modifier = (3.0 * defender.stats.hp as f32 - 2.0 * defender.current_hp as f32) * defender.catch_rate as f32 / (3.0 * defender.stats.hp as f32);
+
+                println!("Modifier: {}", modifier);
+                let catch_rate = ball_bonus * modifier;
+                println!("Catch rate: {}", catch_rate);
+                let mut rng = rand::thread_rng();
+                let val = rng.gen_range(0..256);
+                println!("Random value: {}", val);
+                if val < catch_rate as u32 {
+                    println!("Player caught {}.", defender.name);
+                    return true;
+                }
             },
             ActionType::Swap { slot } => {
+                //only switch if not fainted
                 println!("Player swapped to {}.", player_party[*slot as usize].name);
                 self.player_pokemon_index = *slot as usize;
                 self.player_display.swap(&player_party[self.player_pokemon_index], renderer);
                 self.ui.update_moves(&player_party[self.player_pokemon_index], renderer);
             },
             ActionType::Run => {
-                if attacker.stats.speed >= defender.stats.speed {
-                    println!("Player ran away.");
-                    return true;
-                }
 
                 let escape_chance = (attacker.stats.speed * 128 / defender.stats.speed + 30*self.escape_attempts).min(255); // Ensures the value is within 0 to 255.
                 let chance_percentage = escape_chance as f64 / 256.0 * 100.0;

@@ -1,5 +1,5 @@
 use crate::renderer::instance::Instance;
-use super::moves::{get_moves, Move};
+use super::moves::Move;
 use crate::renderer::sprite::Sprite;
 use crate::renderer::Renderer;
 
@@ -13,6 +13,7 @@ pub struct Pokemon {
     pub front_sprite: Sprite,
     pub id: u32,
     pub moves: Vec<Move>,
+    pub catch_rate: u32,
 }
 
 impl Pokemon {
@@ -44,57 +45,70 @@ impl Pokemon {
             _ => Stats::new(0, 0, 0, 0, 0, 0),
         };
 
+
+        let catch_rate = match name.as_str() {
+            "Bulbasaur" => 45,
+            "Ivysaur" => 45,
+            "Venusaur" => 45,
+            "Charmander" => 45,
+            "Charmeleon" => 45,
+            "Charizard" => 45,
+            "Squirtle" => 45,
+            "Wartortle" => 45,
+            "Blastoise" => 45,
+            _ => 0, // Default to 0 if the Pokémon's name doesn't match any known Pokémon
+        };
+
         //make sprite coords a function of id
         let sprite_coords = ((id - 1) % 16 * 2, (id - 1) / 16 * 2);
 
-        let moves_dict = get_moves();
         let mut moves = Vec::new();
 
         match name.as_str() {
             "Bulbasaur" => {
-                moves.push(moves_dict["Tackle"].clone());
-                moves.push(moves_dict["Growl"].clone());
+                moves.push(Move::new("Tackle"));
+                moves.push(Move::new("Growl"));
             },
             "Ivysaur" => {
-                moves.push(moves_dict["Tackle"].clone());
-                moves.push(moves_dict["Growl"].clone());
-                moves.push(moves_dict["Vine Whip"].clone());
+                moves.push(Move::new("Tackle"));
+                moves.push(Move::new("Growl"));
+                moves.push(Move::new("Vine Whip"));
             },
             "Venusaur" => {
-                moves.push(moves_dict["Tackle"].clone());
-                moves.push(moves_dict["Growl"].clone());
-                moves.push(moves_dict["Vine Whip"].clone());
-                moves.push(moves_dict["Razor Leaf"].clone());
+                moves.push(Move::new("Tackle"));
+                moves.push(Move::new("Growl"));
+                moves.push(Move::new("Vine Whip"));
+                moves.push(Move::new("Razor Leaf"));
             },
             "Charmander" => {
-                moves.push(moves_dict["Scratch"].clone());
-                moves.push(moves_dict["Growl"].clone());
+                moves.push(Move::new("Scratch"));
+                moves.push(Move::new("Growl"));
             },
             "Charmeleon" => {
-                moves.push(moves_dict["Scratch"].clone());
-                moves.push(moves_dict["Growl"].clone());
-                moves.push(moves_dict["Ember"].clone());
+                moves.push(Move::new("Scratch"));
+                moves.push(Move::new("Growl"));
+                moves.push(Move::new("Ember"));
             },
             "Charizard" => {
-                moves.push(moves_dict["Scratch"].clone());
-                moves.push(moves_dict["Growl"].clone());
-                moves.push(moves_dict["Ember"].clone());
-                moves.push(moves_dict["Flamethrower"].clone());
+                moves.push(Move::new("Scratch"));
+                moves.push(Move::new("Growl"));
+                moves.push(Move::new("Ember"));
+                moves.push(Move::new("Flamethrower"));
             },
             "Squirtle" => {
-                moves.push(moves_dict["Tackle"].clone());
-                moves.push(moves_dict["Tail Whip"].clone());
+                moves.push(Move::new("Tackle"));
+                moves.push(Move::new("Tail Whip"));
             },
             "Wartortle" => {
-                moves.push(moves_dict["Tackle"].clone());
-                moves.push(moves_dict["Tail Whip"].clone());
-                moves.push(moves_dict["Water Gun"].clone());
+                moves.push(Move::new("Tackle"));
+                moves.push(Move::new("Tail Whip"));
+                moves.push(Move::new("Water Gun"));
             },
             "Blastoise" => {
-                moves.push(moves_dict["Tackle"].clone());
-                moves.push(moves_dict["Tail Whip"].clone());
-                moves.push(moves_dict["Water Gun"].clone());
-                moves.push(moves_dict["Hydro Pump"].clone());
+                moves.push(Move::new("Tackle"));
+                moves.push(Move::new("Tail Whip"));
+                moves.push(Move::new("Water Gun"));
+                moves.push(Move::new("Hydro Pump"));
             },
             _ => (),
         }
@@ -116,6 +130,7 @@ impl Pokemon {
             front_sprite,
             id,
             moves,
+            catch_rate,
         }
     }
 }
