@@ -13,6 +13,8 @@ mod font;
 mod moves;
 mod battle;
 mod npc;
+mod entity;
+mod animation_player;
 
 use std::time::{Instant, Duration};
 use player::Player;
@@ -31,8 +33,9 @@ use party::Party;
 use crate::renderer::sprite::Sprite;
 use cgmath::{Matrix4, vec4, Vector4};
 use npc::NPC;
+use entity::Entity;
 
-pub struct Animation {
+pub struct GAnimation {
     pub frames: Vec<u32>,
     pub frame_duration: Duration,
     pub current_frame: u32,
@@ -45,7 +48,7 @@ pub struct Game {
     input_manager: InputManager,
     player: Player,
     map: map_loader::Map,
-    animations: Vec<Animation>,
+    animations: Vec<GAnimation>,
     state: GameState,
     time_of_last_update: Instant,
     pub menu: Menu,
@@ -54,6 +57,7 @@ pub struct Game {
     player_pokemon: Vec<Pokemon>,
     debug_background: Sprite,
     npcs: Vec<NPC>,
+    ground_animations: Vec<GAnimation>,
 }
 
 impl Game {
@@ -63,6 +67,24 @@ impl Game {
         let map_loader = loader.load_tmx_map("/home/chris/games/SirSquare/assets/landing.tmx").unwrap();
         let map = map_loader::Map::new(&map_loader, 0);
 
+        let mut ground_animations = Vec::new();
+
+        for animated in &map.animated {
+            ground_animations.push(GAnimation {
+                frames: animated.frames.clone(),
+                frame_duration: Duration::from_millis(250),
+                current_frame: 0,
+                instance: Instance {
+                    model: cgmath::Matrix4::from_translation(cgmath::Vector3::new(animated.x, animated.y, 0.0)).into(),
+                    tex_index: animated.frames[0] as u32,
+                    atlas_index: 0,
+                },
+                time_accumulator: Duration::from_millis(0),
+                looped: true,
+            });
+        }
+
+            //push 4 frames starting from object.id
         let menu = Menu::new(&mut loader, cgmath::Vector3::new(0.0, 0.0, 0.0));
 
         let mut player_pokemon = Vec::new();
@@ -79,7 +101,7 @@ impl Game {
 
         Self {
             input_manager: InputManager::new(),
-            player: Player::new(),
+            player: Player::new(renderer),
             map,
             animations: Vec::new(),
             state: GameState::Running,
@@ -90,6 +112,7 @@ impl Game {
             player_pokemon,
             debug_background,
             npcs: Vec::new(),
+            ground_animations,
         }
     }
 
@@ -141,11 +164,23 @@ impl Game {
                 let mut instances = Vec::new();
                 instances.extend_from_slice(&self.map.background);
                 instances.extend_from_slice(&self.map.ground);
+                instances.extend_from_slice(&self.ground_animations.iter().map(|animation| animation.instance).collect::<Vec<Instance>>());
                 instances.extend_from_slice(&self.map.foreground);
-                instances.extend_from_slice(&self.player.instances);
-                for npc in &self.npcs {
-                    instances.extend_from_slice(&npc.instances);
-                }
+
+                //push animation player from player
+                instances.extend_from_slice(&self.player.get_instances());
+
+                //let mut entities: Vec<&dyn Entity> = Vec::new();
+                //entities.push(&self.player);
+                //entities.extend(self.npcs.iter().map(|npc| npc as &dyn Entity));
+
+                //entities.sort_by(|a, b| b.position().y.partial_cmp(&a.position().y).unwrap_or(std::cmp::Ordering::Equal));
+
+                // Add sorted entity instances to the instances vector
+                //for entity in entities {
+                //    instances.extend_from_slice(entity.instances());
+                //}
+
                 instances.extend_from_slice(&self.animations.iter().map(|animation| animation.instance).collect::<Vec<Instance>>());
                 instances.extend_from_slice(&self.map.aboveground);
 

@@ -1,6 +1,7 @@
 use crate::renderer::instance::Instance;
 use cgmath::Vector3;
 use tiled::PropertyValue::IntValue;
+use tiled;
 
 #[derive(Clone)]
 pub struct Rectangle {
@@ -31,6 +32,9 @@ pub struct Npc {
     pub x: f32,
     pub y: f32,
     pub direction: Vector3<f32>,
+    pub interaction: String,
+    pub los: u32,
+    pub path_id: u32,
 }
 
 #[derive(Clone)]
@@ -53,6 +57,20 @@ pub struct Grass {
     pub y: f32,
 }
 
+#[derive(Clone)]
+pub struct Animated {
+    pub x: f32,
+    pub y: f32,
+    pub frames: Vec<u32>,
+}
+
+#[derive(Clone)]
+pub struct Path {
+    pub id: u32,
+    pub points: Vec<Vector3<f32>>,
+    pub direction: String,
+}
+
 pub struct Map {
     pub background: Vec<Instance>,
     pub ground: Vec<Instance>,
@@ -64,6 +82,8 @@ pub struct Map {
     pub grasses: Vec<Grass>,
     pub npcs: Vec<Npc>,
     pub interactions: Vec<Interaction>,
+    pub animated: Vec<Animated>,
+    pub paths: Vec<Path>,
 }
 
 impl Map {
@@ -78,6 +98,10 @@ impl Map {
         let mut grasses = Vec::new();
         let mut npcs = Vec::new();
         let mut interactions = Vec::new();
+        let mut animated = Vec::new();
+        let mut paths = Vec::new();
+
+        println!("Atlas index for new map is: {}", atlas_index);
 
         for layer in map.layers() {
             if let tiled::LayerType::Tiles(tile_layer) = layer.layer_type() {
@@ -120,6 +144,12 @@ impl Map {
                     "Interactions" => {
                         Self::push_interactions(&mut interactions, &object_layer);
                     }
+                    "Animated" => {
+                        Self::push_animated(&mut animated, &object_layer);
+                    }
+                    "Paths" => {
+                        Self::push_paths(&mut paths, &object_layer);
+                    }
                     _ => {}
                 }
 
@@ -138,6 +168,8 @@ impl Map {
             grasses,
             npcs,
             interactions,
+            animated,
+            paths,
         }
     }
 
@@ -167,8 +199,8 @@ impl Map {
 
     fn push_grasses(grasses: &mut Vec<Grass>, object_layer: &tiled::ObjectLayer) {
         for object in object_layer.objects() {
-            let x = object.x as f32 / 32.0;
-            let y = -1.0 * object.y as f32 / 32.0 + 1.0;
+            let x = object.x as f32 / 16.0;
+            let y = -1.0 * object.y as f32 / 16.0 + 1.0;
             grasses.push(Grass { x, y });
         }
     }
@@ -188,8 +220,8 @@ impl Map {
                 _ => Vector3::new(0.0, 1.0, 0.0),
             };
 
-            let x = object.x as f32 / 32.0;
-            let y = -1.0 * object.y as f32 / 32.0 + 1.0;
+            let x = object.x as f32 / 16.0;
+            let y = -1.0 * object.y as f32 / 16.0 + 1.0;
 
             let location = match object.properties.get("location") {
                 Some(tiled::PropertyValue::IntValue(val)) => *val,
@@ -200,11 +232,37 @@ impl Map {
         }
     }
 
+    fn push_paths(paths: &mut Vec<Path>, object_layer: &tiled::ObjectLayer) {
+        for object in object_layer.objects() {
+
+            let id = object.id();
+            let mut points = Vec::new();
+            let direction = match object.properties.get("direction") {
+                Some(tiled::PropertyValue::StringValue(val)) => val.clone(),
+                _ => "".to_string(),
+            };
+
+            if let tiled::ObjectShape::Polygon { points: polygon_points } = &object.shape {
+                for point in polygon_points {
+                    points.push(Vector3::new(point.0 as f32 / 16.0, -1.0 * point.1 as f32 / 16.0 + 1.0, 0.0));
+                }
+            }
+
+            //print points
+            for point in &points {
+                println!("path id: {},  x: {}, y: {}", id, point.x, point.y);
+            }
+
+
+            paths.push(Path {id, points, direction});
+        }
+    }
+
     fn push_npcs(npcs: &mut Vec<Npc>, object_layer: &tiled::ObjectLayer) {
         for object in object_layer.objects() {
             let name = object.name.clone();
-            let x = object.x as f32 / 32.0;
-            let y = -1.0 * object.y as f32 / 32.0 + 1.0;
+            let x = object.x as f32 / 16.0;
+            let y = -1.0 * object.y as f32 / 16.0 + 1.0;
 
             let direction = match object.properties.get("direction") {
                 Some(tiled::PropertyValue::IntValue(val)) => match val {
@@ -217,15 +275,32 @@ impl Map {
                 _ => Vector3::new(0.0, 1.0, 0.0),
             };
 
-            npcs.push(Npc {name, x, y, direction});
+            let interaction = match object.properties.get("interaction") {
+                Some(tiled::PropertyValue::StringValue(val)) => val.clone(),
+                _ => "".to_string(),
+            };
+
+            let los = match object.properties.get("los") {
+                Some(tiled::PropertyValue::IntValue(val)) => *val as u32,
+                _ => 0,
+            };
+
+            let path_id = match object.properties.get("path") {
+                Some(tiled::PropertyValue::ObjectValue(val)) => val.clone(),
+                _ => 0,
+            };
+
+            //get path from path_id
+
+            npcs.push(Npc {name, x, y, direction, interaction, los, path_id});
         }
     }
 
     fn push_interactions(interactions: &mut Vec<Interaction>, object_layer: &tiled::ObjectLayer) {
         for object in object_layer.objects() {
             let name = object.name.clone();
-            let x = object.x as f32 / 32.0;
-            let y = -1.0 * object.y as f32 / 32.0 + 1.0;
+            let x = object.x as f32 / 16.0;
+            let y = -1.0 * object.y as f32 / 16.0 + 1.0;
             interactions.push(Interaction {name, x, y});
         }
     }
@@ -233,8 +308,8 @@ impl Map {
     fn push_doors(doors: &mut Vec<Door>, object_layer: &tiled::ObjectLayer) {
         for object in object_layer.objects() {
             let name = object.name.clone();
-            let x = object.x as f32 / 32.0;
-            let y = -1.0 * object.y as f32 / 32.0 + 1.0;
+            let x = object.x as f32 / 16.0;
+            let y = -1.0 * object.y as f32 / 16.0 + 1.0;
             let rectangle = Rectangle::new(
                 x,
                 y,
@@ -248,6 +323,20 @@ impl Map {
             } as u32;
 
             doors.push(Door { rectangle, name, location });
+        }
+    }
+
+    fn push_animated(animated: &mut Vec<Animated>, object_layer: &tiled::ObjectLayer) {
+        for object in object_layer.objects() {
+            let x = object.x as f32 / 16.0;
+            let y = -1.0 * object.y as f32 / 16.0 + 1.0;
+
+            let mut frames = Vec::new();
+            for i in 0..4 {
+                frames.push(object.tile_data().expect("").id() + i);
+            }
+
+            animated.push(Animated { x, y, frames });
         }
     }
 }

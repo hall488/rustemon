@@ -31,22 +31,22 @@ pub fn get_quad() -> (Vec<Vertex>, Vec<u16>) {
 
     let top_left = Vertex {
         position: [-0.5, 0.5, 0.0],
-        tex_coords: [0.0, 0.0],
+        tex_coords: [0.001, 0.001],
     };
 
     let bottom_left = Vertex {
         position: [-0.5, -0.5, 0.0],
-        tex_coords: [0.0, 1.0],
+        tex_coords: [0.001, 0.999],
     };
 
     let bottom_right = Vertex {
         position: [0.5, -0.5, 0.0],
-        tex_coords: [1.0, 1.0],
+        tex_coords: [0.999, 0.999],
     };
 
     let top_right = Vertex {
         position: [0.5, 0.5, 0.0],
-        tex_coords: [1.0, 0.0],
+        tex_coords: [0.999, 0.001],
     };
 
     let vertices = vec![top_left, bottom_left, bottom_right, top_right];

@@ -62,7 +62,6 @@ fn vs_main(model: VertexInput, instance: InstanceInput) -> VertexOutput {
 
     let atlas = atlas_infos[instance.atlas_index];
 
-
     var position: vec4<f32>;
 
     if (config.apply_camera != 0u) {
@@ -87,6 +86,7 @@ fn vs_main(model: VertexInput, instance: InstanceInput) -> VertexOutput {
         x_pos * (f32(atlas.atlas_width) / f32(atlas.texture_width)),
         y_pos * (f32(atlas.atlas_height) / f32(atlas.texture_height))
     );
+
     out.atlas_index = instance.atlas_index;
 
     return out;

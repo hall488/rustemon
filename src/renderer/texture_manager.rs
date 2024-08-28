@@ -72,7 +72,6 @@ impl TextureManager {
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
             address_mode_u: wgpu::AddressMode::ClampToEdge,
             address_mode_v: wgpu::AddressMode::ClampToEdge,
-            address_mode_w: wgpu::AddressMode::ClampToEdge,
             mag_filter: wgpu::FilterMode::Nearest,
             min_filter: wgpu::FilterMode::Nearest,
             mipmap_filter: wgpu::FilterMode::Nearest,
@@ -116,8 +115,8 @@ impl TextureManager {
             AtlasInfo {
                 atlas_width: 0,
                 atlas_height: 0,
-                tile_width: 32, // Fixed texture width
-                tile_height: 32, // Fixed texture height
+                tile_width: 16, // Fixed texture width
+                tile_height: 16, // Fixed texture height
                 texture_width: texture_size.0,
                 texture_height: texture_size.1,
                 _padding: 0,
@@ -288,6 +287,7 @@ impl TextureManager {
 
         let rgba = &image.data;
         let dimensions = (image.width, image.height);
+        println!("Dimensions: {:?}", dimensions);
 
         // Ensure we do not exceed the maximum number of textures in the array
         let start_time = Instant::now();
@@ -325,8 +325,8 @@ impl TextureManager {
         self.atlas_infos[layer_index as usize] = AtlasInfo {
             atlas_width: dimensions.0,
             atlas_height: dimensions.1,
-            tile_width: 32, // Fixed texture width
-            tile_height: 32, // Fixed texture height
+            tile_width: 16, // Fixed texture width
+            tile_height: 16, // Fixed texture height
             texture_width: self.texture_size.0,
             texture_height: self.texture_size.1,
             _padding: 0,

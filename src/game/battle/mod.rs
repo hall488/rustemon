@@ -153,6 +153,9 @@ impl Battle {
             },
             BattleState::EnemyFaint => {
                 // Handle EnemyFaint state
+                //gain exp
+                let exp = self.enemy_party[self.enemy_pokemon_index].experience_yield;
+                player_party[self.player_pokemon_index].gain_experience(exp);
                 return true;
             },
             BattleState::MoveText => {

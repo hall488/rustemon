@@ -99,8 +99,8 @@ impl Menu {
 
         // Update menu pointer position
         self.pointer.model = cgmath::Matrix4::from_translation(cgmath::Vector3::new(
-            player.position.x + 3.5 + 3.0/32.0,
-            player.position.y + 4.0 + 3.0/32.0 - self.option as f32 * 30.0/32.0,
+            player.position.x + 3.5 + 1.5/16.0,
+            player.position.y + 4.0 + 1.5/16.0 - self.option as f32 * 15.0/16.0,
             0.0)).into();
 
         // Handle input

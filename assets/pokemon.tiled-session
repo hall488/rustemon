@@ -3,7 +3,7 @@
         "height": 4300,
         "width": 2
     },
-    "activeFile": "pokecenter.tmx",
+    "activeFile": "battle.tmx",
     "expandedProjectPaths": [
         "."
     ],
@@ -12,54 +12,78 @@
             "scale": 2.935104166666666,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 336.444617950811,
-                "y": 1028.5835965503782
+                "x": 2141.4912872200734,
+                "y": 2041.835539624517
             }
         },
         "battle.tsx": {
             "scaleInDock": 1
+        },
+        "gym.tmx": {
+            "expandedObjectLayers": [
+                4,
+                7,
+                5
+            ],
+            "scale": 2.8988,
+            "selectedLayer": 4,
+            "viewCenter": {
+                "x": 71.92631433696698,
+                "y": 152.13191665516763
+            }
+        },
+        "gym.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
         },
         "house_1.tmx": {
             "expandedObjectLayers": [
                 6,
                 7
             ],
-            "scale": 2.679296875,
-            "selectedLayer": 1,
+            "scale": 4.24,
+            "selectedLayer": 6,
             "viewCenter": {
-                "x": 243.90727511299025,
-                "y": 270.2201487097244
+                "x": 119.92924528301887,
+                "y": 87.97169811320754
             }
+        },
+        "house_1.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
         },
         "landing.tmx": {
             "expandedObjectLayers": [
+                11,
+                20,
                 13,
-                11
+                16,
+                19
             ],
-            "scale": 1.0436298076923076,
-            "selectedLayer": 7,
+            "scale": 4,
+            "selectedLayer": 8,
             "viewCenter": {
-                "x": 270.68985373718766,
-                "y": 335.3679603823564
+                "x": 238.375,
+                "y": 196.25
             }
         },
         "menu.tmx": {
             "scale": 2.127109375,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 79.92066698497814,
-                "y": 127.6380063907151
+                "x": 39.96033349248907,
+                "y": 63.70147280273258
             }
         },
         "menu.tsx": {
-            "scaleInDock": 1,
+            "scaleInDock": 1.5,
             "scaleInEditor": 1
         },
         "party.tmx": {
             "scale": 3.0301041666666664,
             "selectedLayer": 1,
             "viewCenter": {
-                "x": 240.09075595585963,
+                "x": 240.09075595585966,
                 "y": 159.7304823129018
             }
         },
@@ -77,61 +101,79 @@
         },
         "pokecenter.tmx": {
             "expandedObjectLayers": [
-                9,
                 8,
+                7,
                 11,
-                7
+                9
             ],
-            "scale": 1.6985,
-            "selectedLayer": 8,
+            "scale": 5.5536,
+            "selectedLayer": 5,
             "viewCenter": {
-                "x": 300.559317044451,
-                "y": 148.95496025905214
+                "x": 136.03788533563812,
+                "y": 95.97378277153557
             }
         },
         "pokecenter.tsx": {
-            "scaleInDock": 1
+            "scaleInDock": 1.5,
+            "scaleInEditor": 1
         },
         "pokemart.tmx": {
             "expandedObjectLayers": [
                 7,
                 6
             ],
-            "scale": 3.5476562499999997,
+            "scale": 4.5573,
             "selectedLayer": 4,
             "viewCenter": {
-                "x": 111.76392865007708,
-                "y": -343.0433825148646
+                "x": 63.74388343975599,
+                "y": 120.46606543348034
             }
         },
         "ts8.tsx": {
-            "scaleInDock": 1
+            "scaleInDock": 1,
+            "scaleInEditor": 1
         }
     },
     "last.externalTilesetPath": "/home/chris/games/SirSquare/assets",
     "last.imagePath": "/home/chris/games/SirSquare/assets",
-    "map.height": 10,
+    "map.height": 20,
     "map.lastUsedFormat": "tmx",
-    "map.width": 15,
+    "map.width": 16,
     "openFiles": [
         "menu.tmx",
         "menu.tsx",
         "battle.tmx",
         "party.tsx",
         "party.tmx",
-        "pokecenter.tmx"
+        "pokecenter.tmx",
+        "landing.tmx",
+        "ts8.tsx",
+        "house_1.tsx",
+        "house_1.tmx",
+        "pokecenter.tsx",
+        "gym.tmx",
+        "gym.tsx"
     ],
     "project": "pokemon.tiled-project",
-    "property.type": "int",
+    "property.type": "object",
     "recentFiles": [
         "menu.tmx",
         "menu.tsx",
-        "battle.tmx",
-        "party.tsx",
-        "party.tmx",
+        "gym.tsx",
+        "gym.tmx",
+        "pokecenter.tsx",
+        "house_1.tmx",
+        "house_1.tsx",
+        "ts8.tsx",
+        "landing.tmx",
         "pokecenter.tmx",
-        "landing.tmx"
+        "party.tmx",
+        "party.tsx"
     ],
     "tileset.lastUsedFilter": "Tiled tileset files (*.tsx *.xml)",
-    "tileset.lastUsedFormat": "tsx"
+    "tileset.lastUsedFormat": "tsx",
+    "tileset.tileSize": {
+        "height": 16,
+        "width": 16
+    }
 }

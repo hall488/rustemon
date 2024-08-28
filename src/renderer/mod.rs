@@ -17,7 +17,7 @@ mod vertex;
 mod texture;
 mod pipeline;
 pub mod instance;
-mod texture_manager;
+pub mod texture_manager;
 pub mod image_loader;
 pub mod sprite;
 pub mod window_map;
@@ -125,9 +125,9 @@ impl Renderer {
             texture_map.insert(name.to_string(), texture_manager.load_texture(path, grid_w, grid_h, &queue, &device).expect(""));
         };
 
-        add_texture("landing", 32, 32, "/home/chris/games/SirSquare/assets/landing.png");
-        add_texture("player", 32, 32, "/home/chris/games/SirSquare/assets/player.png");
-        add_texture("menu", 32, 32, "/home/chris/games/SirSquare/assets/menu.png");
+        add_texture("landing", 16, 16, "/home/chris/games/SirSquare/assets/landing.png");
+        add_texture("player", 16, 16, "/home/chris/games/SirSquare/assets/player.png");
+        add_texture("menu", 16, 16, "/home/chris/games/SirSquare/assets/menu.png");
         add_texture("battle", 16, 16, "/home/chris/games/SirSquare/assets/battle.png");
         add_texture("pokemon_back", 32, 32, "/home/chris/games/SirSquare/assets/pokemon_back.png");
         add_texture("pokemon_front", 32, 32, "/home/chris/games/SirSquare/assets/pokemon_front.png");
@@ -136,6 +136,7 @@ impl Renderer {
         add_texture("white_font", 7, 11, "/home/chris/games/SirSquare/assets/white_font.png");
         add_texture("black_font", 7, 11, "/home/chris/games/SirSquare/assets/black_font.png");
         add_texture("debug", 16, 16, "/home/chris/games/SirSquare/assets/debug.png");
+        add_texture("npcs", 16, 16, "/home/chris/games/SirSquare/assets/npcs.png");
 
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Shader"),
@@ -323,6 +324,7 @@ impl Renderer {
             "menu",
             "house_1",
             "battle",
+            "gym",
         ];
 
         let images = image_loader::load_images(&paths, "/home/chris/games/SirSquare/assets").unwrap();
@@ -395,7 +397,7 @@ impl Renderer {
     }
 
     pub fn load_texture(&mut self, texture_path: &str) -> Result<Atlas> {
-        let idx = self.texture_manager.load_texture(texture_path, 32, 32, &self.queue, &self.device)?;
+        let idx = self.texture_manager.load_texture(texture_path, 16, 16, &self.queue, &self.device)?;
         Ok(idx)
     }
 
@@ -405,12 +407,9 @@ impl Renderer {
         let image = self.images.get(name).ok_or_else(|| anyhow!("Image not found"))?;
         println!("Updating texture: {}", name);
         let atlas = self.texture_manager.update_texture(atlas_index, image, grid_w, grid_h, &self.queue, &self.device).expect("");
-        println!("Atlas {}", atlas);
+        println!("{}", atlas);
         self.texture_map.insert(name.to_string(), atlas);
-        //print every atlas name in texture map
-        for (key, _) in &self.texture_map {
-            println!("Atlas name: {}", key);
-        }
+
         Ok(())
     }
 

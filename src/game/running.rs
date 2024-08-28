@@ -1,5 +1,5 @@
 use std::time::Duration;
-use crate::game::{Game, Animation};
+use crate::game::{Game, GAnimation};
 use crate::renderer::Renderer;
 use winit::keyboard::KeyCode;
 use tiled::Loader;
@@ -55,7 +55,7 @@ impl Game {
         }
 
 
-        self.player.input(&last_key, &self.map.collisions);
+        self.player.input(&last_key, &mut self.input_manager, &self.map.collisions, &self.npcs);
         self.player.update(dt);
 
         let mut animations_to_remove = Vec::new();
@@ -70,6 +70,26 @@ impl Game {
                     } else {
                         animation.current_frame = animation.frames.len() as u32 - 1;
                         animations_to_remove.push(i); // Mark this animation for removal
+                        continue;
+                    }
+                }
+                let index = animation.frames[animation.current_frame as usize];
+                animation.instance.tex_index = index;
+            }
+        }
+
+        let mut ground_animations_to_remove = Vec::new();
+        for (i, animation) in self.ground_animations.iter_mut().enumerate() {
+            animation.time_accumulator += dt;
+            if animation.time_accumulator >= animation.frame_duration {
+                animation.time_accumulator -= animation.frame_duration;
+                animation.current_frame += 1;
+                if animation.current_frame >= animation.frames.len() as u32 {
+                    if animation.looped {
+                        animation.current_frame = 0;
+                    } else {
+                        animation.current_frame = animation.frames.len() as u32 - 1;
+                        ground_animations_to_remove.push(i); // Mark this animation for removal
                         continue;
                     }
                 }
@@ -112,7 +132,26 @@ impl Game {
 
             self.map = Map::new(&map_loader, 0);
 
-            let _ = renderer.update_texture(0, &door.name, 32, 32);
+            let _ = renderer.update_texture(0, &door.name, 16, 16);
+
+            let mut ground_animations = Vec::new();
+
+            for animated in &self.map.animated {
+                ground_animations.push(GAnimation {
+                    frames: animated.frames.clone(),
+                    frame_duration: Duration::from_millis(250),
+                    current_frame: 0,
+                    instance: Instance {
+                        model: cgmath::Matrix4::from_translation(cgmath::Vector3::new(animated.x, animated.y, 0.0)).into(),
+                        tex_index: animated.frames[0] as u32,
+                        atlas_index: 0,
+                    },
+                    time_accumulator: Duration::from_millis(0),
+                    looped: true,
+                });
+            }
+
+            self.ground_animations = ground_animations;
 
             //search map for player spawn that matches door.location
             //the spawn name must be player also
@@ -125,8 +164,10 @@ impl Game {
             self.npcs = Vec::new();
 
             for npc in &self.map.npcs {
-                let npc = NPC::new(cgmath::Vector3::new(npc.x, npc.y, 0.0), cgmath::Vector3::new(0.0, 0.0, 0.0), "Nurse", renderer);
-                self.npcs.push(npc);
+                //search self.map.paths for path id
+                let path = self.map.paths.iter().find(|path| path.id == npc.path_id).unwrap().points.clone();
+                let _npc = NPC::new(cgmath::Vector3::new(npc.x, npc.y, 0.0), npc.direction, &npc.name, &npc.interaction, npc.los, path, renderer);
+                self.npcs.push(_npc);
             }
         }
 
@@ -141,7 +182,7 @@ impl Game {
         }
 
         if let Some(grass) = grass_detected {
-            let animation = Animation {
+            let animation = GAnimation {
                 frames: vec![5, 6, 7],
                 frame_duration: Duration::from_millis(100),
                 looped: false,

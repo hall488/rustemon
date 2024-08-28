@@ -12,6 +12,7 @@ pub struct PlayerDisplay {
     current_hp: Font,
     name: Font,
     health_bar: Sprite,
+    exp_bar: Sprite,
 }
 
 impl Display for PlayerDisplay {
@@ -28,6 +29,7 @@ impl Display for PlayerDisplay {
         };
         self.health_bar = renderer.create_sprite(174.0, 91.0, 0, 18 + y_offset, 3, 1, "battle", 1.0 * percent_hp, 1.0).expect("");
         self.current_hp = current_hp;
+
     }
 
     fn draw(&self, instances: &mut Vec<Instance>) {
@@ -37,6 +39,7 @@ impl Display for PlayerDisplay {
         instances.extend_from_slice(&self.current_hp.instanced());
         instances.extend_from_slice(&self.name.instanced());
         instances.extend_from_slice(&self.health_bar.texture);
+        instances.extend_from_slice(&self.exp_bar.texture);
     }
 }
 
@@ -61,6 +64,9 @@ impl PlayerDisplay {
         };
         let health_bar = renderer.create_sprite(174.0, 91.0, 0, 18 + y_offset, 3, 1, "battle", 1.0 * percent_hp, 1.0).expect("");
 
+        let percent_exp = pokemon.experience as f32 / pokemon.experience_threshold as f32;
+        let exp_bar = renderer.create_sprite(158.0, 107.0, 3, 18, 3, 1, "battle", 1.0 * percent_exp, 1.0).expect("");
+
         Self {
             background,
             level,
@@ -68,6 +74,7 @@ impl PlayerDisplay {
             max_hp,
             name,
             health_bar,
+            exp_bar,
         }
     }
 
@@ -87,6 +94,10 @@ impl PlayerDisplay {
             _ => 2,
         };
         self.health_bar = renderer.create_sprite(174.0, 91.0, 0, 18 + y_offset, 3, 1, "battle", 1.0 * percent_hp, 1.0).expect("");
+
+        let percent_exp = pokemon.experience as f32 / pokemon.experience_threshold as f32;
+        self.exp_bar = renderer.create_sprite(158.0, 107.0, 3, 18, 3, 1, "battle", 1.0 * percent_exp, 1.0).expect("");
+
     }
 
 }
