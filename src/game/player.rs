@@ -43,7 +43,7 @@ impl Entity for Player {
     }
 
     fn instances(&self) -> &[Instance] {
-        &self.instances // Assuming `Player` has an `instances` field of type `Vec<Instance>`
+        &self.animation_player.get_instances() // Assuming `Player` has an `instances` field of type `Vec<Instance>`
     }
 }
 
@@ -196,7 +196,6 @@ impl Player {
         self.spot_arrival = false;
 
         self.animation_player.update(self.position, dt);
-        println!("animation player is playing: {}", self.animation_player.playing);
 
         if self.movement_timer > Duration::new(0, 0) {
             if dt >= self.movement_timer {
@@ -211,7 +210,6 @@ impl Player {
                 self.movement_timer -= dt;
             }
 
-            // Update the instance model matrix
         }
 
         // Always update animation if playing
@@ -268,6 +266,11 @@ impl Player {
             if player_left < npc_right && player_right > npc_left &&
                 player_top > npc_bottom && player_bottom < npc_top {
                 // Collision detected, do not update the target position
+                collision_detected = true;
+                break;
+            }
+
+            if aligned_target_position == npc.target_position {
                 collision_detected = true;
                 break;
             }

@@ -12,8 +12,8 @@
             "scale": 2.935104166666666,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 2141.4912872200734,
-                "y": 2041.835539624517
+                "x": 2839.592575504845,
+                "y": 2476.232388117969
             }
         },
         "battle.tsx": {
@@ -21,15 +21,15 @@
         },
         "gym.tmx": {
             "expandedObjectLayers": [
+                5,
                 4,
-                7,
-                5
+                7
             ],
             "scale": 2.8988,
             "selectedLayer": 4,
             "viewCenter": {
-                "x": 71.92631433696698,
-                "y": 152.13191665516763
+                "x": 167.82806678625636,
+                "y": 232.1650338070926
             }
         },
         "gym.tsx": {
@@ -38,8 +38,8 @@
         },
         "house_1.tmx": {
             "expandedObjectLayers": [
-                6,
-                7
+                7,
+                6
             ],
             "scale": 4.24,
             "selectedLayer": 6,
@@ -54,17 +54,17 @@
         },
         "landing.tmx": {
             "expandedObjectLayers": [
+                19,
                 11,
                 20,
                 13,
-                16,
-                19
+                16
             ],
             "scale": 4,
-            "selectedLayer": 8,
+            "selectedLayer": 9,
             "viewCenter": {
-                "x": 238.375,
-                "y": 196.25
+                "x": 288.125,
+                "y": 208
             }
         },
         "menu.tmx": {
@@ -101,9 +101,9 @@
         },
         "pokecenter.tmx": {
             "expandedObjectLayers": [
+                11,
                 8,
                 7,
-                11,
                 9
             ],
             "scale": 5.5536,
@@ -155,7 +155,7 @@
         "gym.tsx"
     ],
     "project": "pokemon.tiled-project",
-    "property.type": "object",
+    "property.type": "int",
     "recentFiles": [
         "menu.tmx",
         "menu.tsx",

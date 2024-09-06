@@ -57,5 +57,19 @@ impl EnemyDisplay {
         }
     }
 
+    pub fn swap(&mut self, pokemon: &Pokemon, renderer: &mut Renderer) {
+        self.name = Font::new(21.0, 19.0, &pokemon.name.to_uppercase(), true, "black_font", renderer);
+        let level = "Lv".to_string() + &pokemon.level.to_string();
+        self.level = Font::new(95.0, 19.0, &level, false, "black_font",  renderer);
+
+        let percent_hp = pokemon.current_hp as f32 / pokemon.stats.hp as f32;
+        let y_offset = match percent_hp {
+            x if x > 0.5 => 0,
+            x if x > 0.25 => 1,
+            _ => 2,
+        };
+        self.health_bar = renderer.create_sprite(54.0, 33.0, 0, 18 + y_offset, 3, 1, "battle", 1.0 * percent_hp, 1.0).expect("");
+    }
+
 
 }

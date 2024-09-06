@@ -95,12 +95,15 @@
   <object id="4" name="Girl" gid="330" x="64" y="144" width="16" height="16">
    <properties>
     <property name="direction" type="int" value="1"/>
+    <property name="interaction" value="Battle"/>
+    <property name="los" type="int" value="4"/>
    </properties>
   </object>
   <object id="5" name="Misty" gid="330" x="128" y="128" width="16" height="16">
    <properties>
     <property name="direction" type="int" value="2"/>
     <property name="interaction" value="Battle"/>
+    <property name="los" value="0"/>
    </properties>
   </object>
   <object id="6" name="Suit" gid="315" x="112" y="288" width="16" height="16">

@@ -103,7 +103,7 @@ impl Battle {
     }
 
 
-    pub fn update(&mut self, player_party: &mut Vec<Pokemon>, input_manager: &mut InputManager, dt: Duration, renderer: &mut Renderer) -> bool {
+    pub fn update(&mut self, player_party: &mut Vec<Pokemon>, input_manager: &mut InputManager, dt: Duration, renderer: &mut Renderer) -> Option<bool> {
         // Handle encounter updates and input
         renderer.camera_controller.update_camera(&mut renderer.camera, cgmath::Vector3::new(0.0, 0.0, 0.0));
 
@@ -122,7 +122,7 @@ impl Battle {
             },
             BattleState::HandleMoves => {
                 if self.resolve_moves(player_party, input_manager, dt, renderer) {
-                    return true;
+                    return Some(true);
                 }
             },
             BattleState::PlayerFaint => {
@@ -130,7 +130,7 @@ impl Battle {
                 // if player has no pokemon they lose
                 if player_party.iter().all(|p| p.current_hp == 0) {
                     println!("Player has no more pokemon. Player loses.");
-                    return true;
+                    return Some(false);
                 }
 
                 //switch to next pokemon
@@ -156,14 +156,22 @@ impl Battle {
                 //gain exp
                 let exp = self.enemy_party[self.enemy_pokemon_index].experience_yield;
                 player_party[self.player_pokemon_index].gain_experience(exp);
-                return true;
+
+                if self.enemy_party.iter().all(|p| p.current_hp == 0) {
+                    println!("All enemy pokemon fainted. Player wins.");
+                    return Some(true);
+                }
+
+                self.enemy_pokemon_index += 1;
+                self.enemy_display.swap(&self.enemy_party[self.enemy_pokemon_index], renderer);
+                self.battle_state = BattleState::PlayerTurn;
             },
             BattleState::MoveText => {
                 // Handle MoveText state
             },
         }
 
-        false
+        None
     }
 
     fn handle_player_turn(&mut self, player_party: &mut Vec<Pokemon>, input_manager: &mut InputManager, dt: Duration, renderer: &mut Renderer) -> Option<Action> {

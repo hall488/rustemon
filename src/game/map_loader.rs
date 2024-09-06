@@ -29,12 +29,13 @@ pub struct Spawn {
 #[derive(Clone)]
 pub struct Npc {
     pub name: String,
+    pub id: u32,
     pub x: f32,
     pub y: f32,
     pub direction: Vector3<f32>,
     pub interaction: String,
     pub los: u32,
-    pub path_id: u32,
+    pub path_id: Option<u32>,
 }
 
 #[derive(Clone)]
@@ -242,10 +243,12 @@ impl Map {
                 _ => "".to_string(),
             };
 
+            //get world map points
             if let tiled::ObjectShape::Polygon { points: polygon_points } = &object.shape {
                 for point in polygon_points {
-                    points.push(Vector3::new(point.0 as f32 / 16.0, -1.0 * point.1 as f32 / 16.0 + 1.0, 0.0));
+                    points.push(Vector3::new((point.0 + object.x) as f32 / 16.0, -1.0 * (point.1 + object.y) as f32 / 16.0 + 1.0, 0.0));
                 }
+
             }
 
             //print points
@@ -286,13 +289,15 @@ impl Map {
             };
 
             let path_id = match object.properties.get("path") {
-                Some(tiled::PropertyValue::ObjectValue(val)) => val.clone(),
-                _ => 0,
+                Some(tiled::PropertyValue::ObjectValue(val)) => Some(val.clone()),
+                _ => None,
             };
+
+            let id = object.id();
 
             //get path from path_id
 
-            npcs.push(Npc {name, x, y, direction, interaction, los, path_id});
+            npcs.push(Npc {name, id, x, y, direction, interaction, los, path_id});
         }
     }
 

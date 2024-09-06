@@ -8,7 +8,9 @@ use rand::Rng;
 use crate::game::pokemon::Pokemon;
 use crate::game::map_loader::{Door, Map, Grass};
 use crate::renderer::instance::Instance;
-use super::npc::NPC;
+use super::npc::{NPC, generate_pokemon};
+use crate::game::Interaction;
+use cgmath::Vector3;
 
 impl Game {
     pub fn running(&mut self, renderer: &mut Renderer, dt: Duration) {
@@ -54,9 +56,49 @@ impl Game {
             }
         }
 
+        if self.queue_battle.0 {
+            println!("Starting battle with {:?}", self.queue_battle.1);
+            //get npc by id
+            let npc = self.npcs.iter_mut().find(|npc| npc.id == self.queue_battle.1).unwrap();
+            npc.update(self.player.target_position, dt);
 
-        self.player.input(&last_key, &mut self.input_manager, &self.map.collisions, &self.npcs);
-        self.player.update(dt);
+            if npc.position == npc.next_point {
+                let id = npc.id.clone();  // Clone only if necessary
+
+                // Start battle and push to finished battles
+                self.start_battle(id.clone(), generate_pokemon(id.0.clone(), id.1, renderer), renderer);
+
+                // Reset queue_battle
+                self.queue_battle = (false, ("".to_string(), 0));
+            }
+        } else {
+            self.player.input(&last_key, &mut self.input_manager, &self.map.collisions, &self.npcs);
+            self.player.update(dt);
+            for npc in &mut self.npcs {
+                npc.update(self.player.target_position, dt);
+
+
+                //if npc is of type battle(false)
+                if let Interaction::Battle(false, ref battle_squares) = npc.interaction {
+                    //if player is within line of sight start battle
+                    //npc walks up to player and battle starts
+
+                    if npc.id.1 == 3 {
+                        println!("battle squares: {:?}", battle_squares);
+                        println!("player position: {:?}", self.player.position);
+                    }
+
+                    if battle_squares.contains(&self.player.position) {
+                        self.queue_battle = (true, npc.id.clone());
+                        npc.walk_to(self.player.position - npc.direction);
+                    }
+
+
+                }
+            }
+        }
+
+
 
         let mut animations_to_remove = Vec::new();
         for (i, animation) in self.animations.iter_mut().enumerate() {
@@ -126,49 +168,7 @@ impl Game {
         }
 
         if let Some(door) = door_detected {
-            let mut loader = Loader::new();
-            let map_path = format!("/home/chris/games/SirSquare/assets/{}.tmx", door.name);
-            let map_loader = loader.load_tmx_map(map_path).unwrap();
-
-            self.map = Map::new(&map_loader, 0);
-
-            let _ = renderer.update_texture(0, &door.name, 16, 16);
-
-            let mut ground_animations = Vec::new();
-
-            for animated in &self.map.animated {
-                ground_animations.push(GAnimation {
-                    frames: animated.frames.clone(),
-                    frame_duration: Duration::from_millis(250),
-                    current_frame: 0,
-                    instance: Instance {
-                        model: cgmath::Matrix4::from_translation(cgmath::Vector3::new(animated.x, animated.y, 0.0)).into(),
-                        tex_index: animated.frames[0] as u32,
-                        atlas_index: 0,
-                    },
-                    time_accumulator: Duration::from_millis(0),
-                    looped: true,
-                });
-            }
-
-            self.ground_animations = ground_animations;
-
-            //search map for player spawn that matches door.location
-            //the spawn name must be player also
-            let player_spawn = self.map.spawns.iter().find(|spawn| spawn.name == "player" && spawn.location == door.location);
-
-            self.player.position = cgmath::Vector3::new(player_spawn.unwrap().x, player_spawn.unwrap().y, 0.0);
-            self.player.target_position = self.player.position;
-
-            //load npcs
-            self.npcs = Vec::new();
-
-            for npc in &self.map.npcs {
-                //search self.map.paths for path id
-                let path = self.map.paths.iter().find(|path| path.id == npc.path_id).unwrap().points.clone();
-                let _npc = NPC::new(cgmath::Vector3::new(npc.x, npc.y, 0.0), npc.direction, &npc.name, &npc.interaction, npc.los, path, renderer);
-                self.npcs.push(_npc);
-            }
+            self.load_map(&door.name, door.location, renderer);
         }
 
         //check if player collides with grass
@@ -216,5 +216,70 @@ impl Game {
             }
         }
     }
+
+    pub fn load_map(&mut self, map_name: &str, door_location: u32 , renderer: &mut Renderer) {
+        let mut loader = Loader::new();
+        let map_path = format!("/home/chris/games/SirSquare/assets/{}.tmx", map_name);
+        let map_loader = loader.load_tmx_map(map_path).unwrap();
+
+        self.map = Map::new(&map_loader, 0);
+
+        let _ = renderer.update_texture(0, map_name, 16, 16);
+
+        let mut ground_animations = Vec::new();
+
+        for animated in &self.map.animated {
+            ground_animations.push(GAnimation {
+                frames: animated.frames.clone(),
+                frame_duration: Duration::from_millis(250),
+                current_frame: 0,
+                instance: Instance {
+                    model: cgmath::Matrix4::from_translation(cgmath::Vector3::new(animated.x, animated.y, 0.0)).into(),
+                    tex_index: animated.frames[0] as u32,
+                    atlas_index: 0,
+                },
+                time_accumulator: Duration::from_millis(0),
+                looped: true,
+            });
+        }
+
+        self.ground_animations = ground_animations;
+
+        //search map for player spawn that matches door.location
+        //the spawn name must be player also
+        let player_spawn = self.map.spawns.iter().find(|spawn| spawn.name == "player" && spawn.location == door_location);
+
+        self.player.position = cgmath::Vector3::new(player_spawn.unwrap().x, player_spawn.unwrap().y, 0.0);
+        self.player.target_position = self.player.position;
+
+        self.npcs = Vec::new();
+
+        for npc in &self.map.npcs {
+            let position = cgmath::Vector3::new(npc.x, npc.y, 0.0);
+            let path = npc.path_id
+                .and_then(|path_id| self.map.paths.iter().find(|path| path.id == path_id).map(|p| p.points.clone()));
+
+            let interaction = match npc.interaction.as_str() {
+                "Heal" => Interaction::Heal,
+                "Battle" => {
+                    let battled = self.finished_battles.contains(&(map_name.to_string(), npc.id));
+                    let mut battle_squares = Vec::new();
+                    for i in 0..npc.los {
+                        let position = position + (npc.direction * (i+1) as f32);
+                        battle_squares.push(position);
+                    }
+                    Interaction::Battle(battled, battle_squares)
+                },
+                "Talk" => Interaction::Talk,
+                _ => Interaction::None,
+            };
+
+            let new_npc = NPC::new((map_name.to_string(), npc.id), position, npc.direction, &npc.name, interaction, npc.los, path, renderer);
+
+            self.npcs.push(new_npc);
+        }
+
+    }
+
 }
 

@@ -31,7 +31,7 @@ use crate::game::battle::Battle;
 use pokemon::Pokemon;
 use party::Party;
 use crate::renderer::sprite::Sprite;
-use cgmath::{Matrix4, vec4, Vector4};
+use cgmath::{Matrix4, vec4, Vector4, Vector3};
 use npc::NPC;
 use entity::Entity;
 
@@ -42,6 +42,13 @@ pub struct GAnimation {
     pub instance: Instance,
     pub time_accumulator: Duration,
     pub looped: bool,
+}
+
+pub enum Interaction {
+    Heal,
+    Battle(bool, Vec<Vector3<f32>>),
+    Talk,
+    None,
 }
 
 pub struct Game {
@@ -58,6 +65,9 @@ pub struct Game {
     debug_background: Sprite,
     npcs: Vec<NPC>,
     ground_animations: Vec<GAnimation>,
+    queue_battle: (bool, (String, u32)),
+    finished_battles: Vec<(String, u32)>, // (map_name, npc_id)
+    trainer: Option<(String, u32)>,
 }
 
 impl Game {
@@ -99,6 +109,32 @@ impl Game {
 
         let debug_background = renderer.create_sprite(0.5 + 6.0, 6.0, 0, 0, 15, 10, "debug", 1.0/240.0*15.0, 1.0/160.0*10.0).expect("");
 
+        let mut npcs = Vec::new();
+
+        for npc in &map.npcs {
+            let position = cgmath::Vector3::new(npc.x, npc.y, 0.0);
+            let path = npc.path_id
+                .and_then(|path_id| map.paths.iter().find(|path| path.id == path_id).map(|p| p.points.clone()));
+
+            let interaction = match npc.interaction.as_str() {
+                "Heal" => Interaction::Heal,
+                "Battle" => {
+                    let mut battle_squares = Vec::new();
+                    for i in 0..npc.los {
+                        let position = position + (npc.direction * i as f32);
+                        battle_squares.push(position);
+                    }
+                    Interaction::Battle(false, battle_squares)
+                },
+                "Talk" => Interaction::Talk,
+                _ => Interaction::None,
+            };
+
+            let new_npc = NPC::new(("landing".to_string(), npc.id), position, npc.direction, &npc.name, interaction, npc.los, path, renderer);
+
+            npcs.push(new_npc);
+        }
+
         Self {
             input_manager: InputManager::new(),
             player: Player::new(renderer),
@@ -111,8 +147,11 @@ impl Game {
             party: None,
             player_pokemon,
             debug_background,
-            npcs: Vec::new(),
+            npcs,
             ground_animations,
+            queue_battle: (false, ("".to_string(), 0)),
+            finished_battles: Vec::new(),
+            trainer: None,
         }
     }
 
@@ -136,9 +175,16 @@ impl Game {
             GameState::Paused => self.paused(renderer),
             GameState::Encounter => {
                 if let Some(encounter) = &mut self.encounter {
-                    if encounter.update(&mut self.player_pokemon, &mut self.input_manager, dt, renderer) {
-                        self.state = GameState::Running;
-                        self.encounter = None;
+
+                    if let Some(player_won) = encounter.update(&mut self.player_pokemon, &mut self.input_manager, dt, renderer) {
+                        if player_won {
+                            self.state = GameState::Running;
+                            self.encounter = None;
+                            self.npc_defeated();
+                        } else {
+                            //send to pokemon center
+                            self.load_map("landing", 1, renderer);
+                        }
                     }
                 }
             },
@@ -168,18 +214,17 @@ impl Game {
                 instances.extend_from_slice(&self.map.foreground);
 
                 //push animation player from player
-                instances.extend_from_slice(&self.player.get_instances());
+                //instances.extend_from_slice(&self.player.get_instances());
 
-                //let mut entities: Vec<&dyn Entity> = Vec::new();
-                //entities.push(&self.player);
-                //entities.extend(self.npcs.iter().map(|npc| npc as &dyn Entity));
+                let mut entities: Vec<&dyn Entity> = Vec::new();
+                entities.push(&self.player);
+                entities.extend(self.npcs.iter().map(|npc| npc as &dyn Entity));
 
-                //entities.sort_by(|a, b| b.position().y.partial_cmp(&a.position().y).unwrap_or(std::cmp::Ordering::Equal));
+                entities.sort_by(|a, b| b.position().y.partial_cmp(&a.position().y).unwrap_or(std::cmp::Ordering::Equal));
 
-                // Add sorted entity instances to the instances vector
-                //for entity in entities {
-                //    instances.extend_from_slice(entity.instances());
-                //}
+                for entity in entities {
+                    instances.extend_from_slice(entity.instances());
+                }
 
                 instances.extend_from_slice(&self.animations.iter().map(|animation| animation.instance).collect::<Vec<Instance>>());
                 instances.extend_from_slice(&self.map.aboveground);
@@ -220,6 +265,17 @@ impl Game {
         self.state = GameState::Encounter;
     }
 
+    pub fn start_battle(&mut self, npc_id: (String, u32), pokemon: Vec<Pokemon>, renderer: &mut Renderer) {
+        self.encounter = Some(Battle::new(&mut self.player_pokemon, pokemon, renderer));
+        self.state = GameState::Encounter;
+        self.trainer = Some(npc_id);
+    }
+
+    pub fn npc_defeated(&mut self) {
+        let npc_id = self.trainer.clone().unwrap();
+        self.finished_battles.push(npc_id);
+        self.trainer = None;
+    }
 
     pub fn enter_party(&mut self, renderer: &mut Renderer) {
         self.party = Some(Party::new(&mut self.player_pokemon, false, false, renderer));
