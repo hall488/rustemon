@@ -45,8 +45,8 @@ impl Slot {
 
         let name = Font::new(31.0, 37.0, &pokemon.name.to_uppercase(), true, "white_font", renderer);
         let level = Font::new(47.0, 46.0, &pokemon.level.to_string(), true, "white_font", renderer);
-        let max_hp = Font::new(70.0, 62.0, &pokemon.stats.hp.to_string(), true, "white_font", renderer);
-        let current_hp = Font::new(50.0, 62.0, &pokemon.current_hp.to_string(), true, "white_font", renderer);
+        let max_hp = Font::new(75.0, 62.0, &pokemon.stats.hp.to_string(), false, "white_font", renderer);
+        let current_hp = Font::new(55.0, 62.0, &pokemon.current_hp.to_string(), false, "white_font", renderer);
 
         let percent_hp = pokemon.current_hp as f32 / pokemon.stats.hp as f32;
         let y_offset = match percent_hp {
@@ -92,8 +92,8 @@ impl Slot {
 
         let name = Font::new(116.0, pos_y + 7.0, &pokemon.name.to_uppercase(), true, "white_font", renderer);
         let level = Font::new(135.0, pos_y + 17.0, &pokemon.level.to_string(), true, "white_font", renderer);
-        let max_hp = Font::new(222.0, pos_y + 17.0, &pokemon.stats.hp.to_string(), true, "white_font", renderer);
-        let current_hp = Font::new(202.0, pos_y + 17.0, &pokemon.current_hp.to_string(), true, "white_font", renderer);
+        let max_hp = Font::new(227.0, pos_y + 17.0, &pokemon.stats.hp.to_string(), false, "white_font", renderer);
+        let current_hp = Font::new(207.0, pos_y + 17.0, &pokemon.current_hp.to_string(), false, "white_font", renderer);
 
         let percent_hp = pokemon.current_hp as f32 / pokemon.stats.hp as f32;
         let y_offset = match percent_hp {

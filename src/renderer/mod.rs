@@ -505,9 +505,9 @@ impl Renderer {
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(wgpu::Color {
-                            r: 0.1,
-                            g: 0.2,
-                            b: 0.3,
+                            r: 0.0,
+                            g: 0.0,
+                            b: 0.0,
                             a: 1.0,
                         }),
                         store: wgpu::StoreOp::Store,
@@ -517,6 +517,19 @@ impl Renderer {
                 occlusion_query_set: None,
                 timestamp_writes: None,
             });
+
+            let window_aspect = self.size.width as f32 / self.size.height as f32;
+            let content_aspect = 240.0 / 160.0;
+
+            if window_aspect > content_aspect {
+                let new_width = self.size.height as f32 * content_aspect;
+                let x_offset = (self.size.width as f32 - new_width) / 2.0;
+                render_pass.set_viewport(x_offset, 0.0, new_width, self.size.height as f32, 0.0, 1.0);
+            } else {
+                let new_height = self.size.width as f32 / content_aspect;
+                let y_offset = (self.size.height as f32 - new_height) / 2.0;
+                render_pass.set_viewport(0.0, y_offset, self.size.width as f32, new_height, 0.0, 1.0);
+            }
 
             // Ensure the correct bind group is set
             render_pass.set_pipeline(&self.render_pipeline);

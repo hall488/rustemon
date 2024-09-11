@@ -27,13 +27,14 @@ use crate::renderer::instance::Instance;
 use crate::game::gamestate::GameState;
 use crate::game::menu::Menu;
 //use crate::game::encounter::Encounter;
-use crate::game::battle::Battle;
+use crate::game::battle::{Battle, BattleType};
 use pokemon::Pokemon;
 use party::Party;
 use crate::renderer::sprite::Sprite;
 use cgmath::{Matrix4, vec4, Vector4, Vector3};
 use npc::NPC;
 use entity::Entity;
+
 
 pub struct GAnimation {
     pub frames: Vec<u32>,
@@ -99,13 +100,11 @@ impl Game {
 
         let mut player_pokemon = Vec::new();
 
-        let bulbasaur = Pokemon::new("Bulbasaur".to_string(), 5, renderer);
-        let charmander = Pokemon::new("Charmander".to_string(), 6, renderer);
-        let squirtle = Pokemon::new("Squirtle".to_string(), 7, renderer);
+        let bulbasaur = Pokemon::new("Bulbasaur".to_string(), 100, renderer);
+        let charmander = Pokemon::new("Charmander".to_string(), 1, renderer);
 
         player_pokemon.push(bulbasaur);
         player_pokemon.push(charmander);
-        player_pokemon.push(squirtle);
 
         let debug_background = renderer.create_sprite(0.5 + 6.0, 6.0, 0, 0, 15, 10, "debug", 1.0/240.0*15.0, 1.0/160.0*10.0).expect("");
 
@@ -178,13 +177,18 @@ impl Game {
 
                     if let Some(player_won) = encounter.update(&mut self.player_pokemon, &mut self.input_manager, dt, renderer) {
                         if player_won {
-                            self.state = GameState::Running;
-                            self.encounter = None;
-                            self.npc_defeated();
+                            if encounter.battle_type == BattleType::Trainer {
+                                self.npc_defeated();
+                            }
+
                         } else {
                             //send to pokemon center
-                            self.load_map("landing", 1, renderer);
+                            self.load_map("pokecenter", 1, renderer);
+                            self.heal_pokemon();
                         }
+
+                        self.encounter = None;
+                        self.state = GameState::Running;
                     }
                 }
             },
@@ -261,18 +265,27 @@ impl Game {
         let enemy_pokemon = vec![pokemon.clone()];  // Clone the enemy Pokémon
 
         // Pass the player's Pokémon by reference and the cloned enemy Pokémon by reference
-        self.encounter = Some(Battle::new(&mut self.player_pokemon, enemy_pokemon, renderer));
+        self.encounter = Some(Battle::new(BattleType::Wild, &mut self.player_pokemon, enemy_pokemon, renderer));
         self.state = GameState::Encounter;
     }
 
     pub fn start_battle(&mut self, npc_id: (String, u32), pokemon: Vec<Pokemon>, renderer: &mut Renderer) {
-        self.encounter = Some(Battle::new(&mut self.player_pokemon, pokemon, renderer));
+        self.encounter = Some(Battle::new(BattleType::Trainer, &mut self.player_pokemon, pokemon, renderer));
         self.state = GameState::Encounter;
         self.trainer = Some(npc_id);
     }
 
     pub fn npc_defeated(&mut self) {
+        println!("NPC defeated");
         let npc_id = self.trainer.clone().unwrap();
+        println!("{:?}", npc_id);
+
+        // Make NPC defeated
+        if let Some(npc) = self.npcs.iter_mut().find(|npc| npc.id == npc_id) {
+            if let Interaction::Battle(ref mut battled, _) = npc.interaction {
+                *battled = true; // Mutate the boolean to mark battle as true
+            }
+        }
         self.finished_battles.push(npc_id);
         self.trainer = None;
     }

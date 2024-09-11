@@ -291,7 +291,7 @@ impl UI {
         instances.extend_from_slice(&self.background.texture);
 
         match self.menu_state {
-            Some(MenuState::Main) => {
+            Some(MenuState::Main | MenuState::Bag) => {
                 instances.extend_from_slice(&self.main_menu.texture);
                 instances.push(self.selector.texture[0]);
             }
@@ -303,9 +303,6 @@ impl UI {
                     }
                 }
                 instances.push(self.selector.texture[0]);
-            }
-            Some(MenuState::Bag) => {
-                // Bag UI drawing logic can go here
             }
             Some(MenuState::Pokemon) => {
                 // Pokemon UI drawing logic can go here

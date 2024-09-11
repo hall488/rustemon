@@ -42,14 +42,28 @@ impl Game {
                     if let Some(interaction) = interaction_detected {
                         match interaction {
                             "Heal" => {
-                                for pokemon in &mut self.player_pokemon {
-                                    pokemon.current_hp = pokemon.stats.hp;
-                                }
-                                println!("Your Pokémon have been healed!");
+                                self.heal_pokemon();
                             }
                             _ => {}
                         }
                     }
+
+                    //if player is in front of battle npc then start battle
+                    let npc = self.npcs.iter().find(|npc| {
+                        if let Interaction::Battle(battled, _) = npc.interaction {
+                            !battled && npc.position == self.player.facing_direction + self.player.position
+                        } else {
+                            false
+                        }
+                    });
+
+                    if let Some(npc) = npc {
+                        self.queue_battle = (true, npc.id.clone());
+                    }
+
+                    //if player is in front of battle npc and npc hasnt already battled then start
+                    //battle
+
                 }
 
                 _ => {}
@@ -80,25 +94,14 @@ impl Game {
 
                 //if npc is of type battle(false)
                 if let Interaction::Battle(false, ref battle_squares) = npc.interaction {
-                    //if player is within line of sight start battle
-                    //npc walks up to player and battle starts
-
-                    if npc.id.1 == 3 {
-                        println!("battle squares: {:?}", battle_squares);
-                        println!("player position: {:?}", self.player.position);
-                    }
 
                     if battle_squares.contains(&self.player.position) {
                         self.queue_battle = (true, npc.id.clone());
                         npc.walk_to(self.player.position - npc.direction);
                     }
-
-
                 }
             }
         }
-
-
 
         let mut animations_to_remove = Vec::new();
         for (i, animation) in self.animations.iter_mut().enumerate() {
@@ -217,6 +220,14 @@ impl Game {
         }
     }
 
+    pub fn heal_pokemon(&mut self) {
+        for pokemon in &mut self.player_pokemon {
+            pokemon.current_hp = pokemon.stats.hp;
+        }
+
+        println!("Your Pokémon have been healed!");
+    }
+
     pub fn load_map(&mut self, map_name: &str, door_location: u32 , renderer: &mut Renderer) {
         let mut loader = Loader::new();
         let map_path = format!("/home/chris/games/SirSquare/assets/{}.tmx", map_name);
@@ -226,6 +237,7 @@ impl Game {
 
         let _ = renderer.update_texture(0, map_name, 16, 16);
 
+        self.animations = Vec::new();
         let mut ground_animations = Vec::new();
 
         for animated in &self.map.animated {
@@ -249,6 +261,7 @@ impl Game {
         //the spawn name must be player also
         let player_spawn = self.map.spawns.iter().find(|spawn| spawn.name == "player" && spawn.location == door_location);
 
+        self.player.orient(player_spawn.unwrap().direction);
         self.player.position = cgmath::Vector3::new(player_spawn.unwrap().x, player_spawn.unwrap().y, 0.0);
         self.player.target_position = self.player.position;
 
@@ -263,6 +276,8 @@ impl Game {
                 "Heal" => Interaction::Heal,
                 "Battle" => {
                     let battled = self.finished_battles.contains(&(map_name.to_string(), npc.id));
+                    println!("npc id: {:?} battled: {:?}", npc.id, battled);
+                    println!("finished_battles: {:?}", self.finished_battles);
                     let mut battle_squares = Vec::new();
                     for i in 0..npc.los {
                         let position = position + (npc.direction * (i+1) as f32);

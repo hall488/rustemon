@@ -198,11 +198,12 @@ impl NPC {
 pub fn generate_pokemon(name: String, id: u32, renderer: &mut Renderer) -> Vec<Pokemon> {
 
     let pokemon = match (name.as_str(), id) {
-        ("gym", 5) => vec![Pokemon::new("Charizard".to_string(), 5, renderer)],
-        ("gym", 4) => vec![Pokemon::new("Blastoise".to_string(), 5, renderer)],
+        ("gym", 5) => vec![Pokemon::new("Staryu".to_string(), 18, renderer),
+                            Pokemon::new("Starmie".to_string(), 21, renderer)],
+        ("gym", 4) => vec![Pokemon::new("Goldeen".to_string(), 19, renderer)],
         ("gym", 3) => vec![
-            Pokemon::new("Venusaur".to_string(), 1, renderer),
-            Pokemon::new("Charizard".to_string(), 1, renderer)
+            Pokemon::new("Horsea".to_string(), 16, renderer),
+            Pokemon::new("Shellder".to_string(), 16, renderer)
         ],
         _ => vec![Pokemon::new("Charizard".to_string(), 5, renderer)],
     };

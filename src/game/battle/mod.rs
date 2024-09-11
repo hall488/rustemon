@@ -17,6 +17,7 @@ use super::moves::Move;
 use rand::Rng;
 use crate::renderer::instance::Instance;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum BattleType {
     Wild,
     Trainer,
@@ -38,7 +39,7 @@ pub trait Display {
 }
 
 pub struct Battle {
-    battle_type: BattleType,
+    pub battle_type: BattleType,
     battle_state: BattleState,
     ui: UI,
     player_pokemon_index: usize,
@@ -72,7 +73,7 @@ pub enum ActionType {
 }
 
 impl Battle {
-    pub fn new(player_pokemon: &mut Vec<Pokemon>, enemy_pokemon: Vec<Pokemon>, renderer: &mut Renderer) -> Self {
+    pub fn new(battle_type: BattleType, player_pokemon: &mut Vec<Pokemon>, enemy_pokemon: Vec<Pokemon>, renderer: &mut Renderer) -> Self {
         println!("You encountered a level {} {}", enemy_pokemon[0].level, enemy_pokemon[0].name);
         let background = renderer.create_sprite(0.0, 0.0, 0, 0, 15, 7, "battle", 1.0, 1.0).expect("");
 
@@ -87,7 +88,7 @@ impl Battle {
         let battle_state = BattleState::PlayerTurn;
 
         Battle {
-            battle_type: BattleType::Wild,
+            battle_type,
             battle_state,
             ui,
             player_pokemon_index: first_index,

@@ -219,6 +219,19 @@ impl Player {
         }
     }
 
+    pub fn orient(&mut self, direction: Vector3<f32>) {
+        self.facing_direction = direction;
+        self.last_direction = direction;
+        self.animation_player.current_animation = match direction {
+            Vector3 { x: 0.0, y: 1.0, z: 0.0 } => "up",
+            Vector3 { x: -1.0, y: 0.0, z: 0.0 } => "left",
+            Vector3 { x: 0.0, y: -1.0, z: 0.0 } => "down",
+            Vector3 { x: 1.0, y: 0.0, z: 0.0 } => "right",
+            _ => "down",
+        }.to_string();
+        self.animation_player.start();
+    }
+
     pub fn set_direction(&mut self, new_direction: Vector3<f32>, collisions: &Vec<Rectangle>, npcs: &Vec<NPC>) {
         if self.movement_timer > Duration::new(0, 0) {
             // Prevent direction changes while the player is moving
