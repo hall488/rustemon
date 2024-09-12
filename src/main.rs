@@ -1,6 +1,7 @@
 mod window;
 mod game;
 mod renderer;
+mod audio;
 
 use window::App;
 use winit::event_loop::EventLoop;

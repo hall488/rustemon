@@ -1,7 +1,5 @@
 use crate::renderer::instance::Instance;
 use cgmath::Vector3;
-use tiled::PropertyValue::IntValue;
-use tiled;
 
 #[derive(Clone)]
 pub struct Rectangle {
@@ -85,10 +83,11 @@ pub struct Map {
     pub interactions: Vec<Interaction>,
     pub animated: Vec<Animated>,
     pub paths: Vec<Path>,
+    pub name: String,
 }
 
 impl Map {
-    pub fn new(map: &tiled::Map, atlas_index: u32) -> Self {
+    pub fn new(map: &tiled::Map, atlas_index: u32, name: String) -> Self {
         let mut background = Vec::new();
         let mut ground = Vec::new();
         let mut foreground = Vec::new();
@@ -171,6 +170,7 @@ impl Map {
             interactions,
             animated,
             paths,
+            name,
         }
     }
 
@@ -226,7 +226,7 @@ impl Map {
 
             let location = match object.properties.get("location") {
                 Some(tiled::PropertyValue::IntValue(val)) => *val,
-                _ => 0, // Default direction
+                _ => 0,
             } as u32;
 
             spawns.push(Spawn {name, x, y, direction, location});
@@ -243,19 +243,11 @@ impl Map {
                 _ => "".to_string(),
             };
 
-            //get world map points
             if let tiled::ObjectShape::Polygon { points: polygon_points } = &object.shape {
                 for point in polygon_points {
                     points.push(Vector3::new((point.0 + object.x) as f32 / 16.0, -1.0 * (point.1 + object.y) as f32 / 16.0 + 1.0, 0.0));
                 }
-
             }
-
-            //print points
-            for point in &points {
-                println!("path id: {},  x: {}, y: {}", id, point.x, point.y);
-            }
-
 
             paths.push(Path {id, points, direction});
         }
@@ -295,8 +287,6 @@ impl Map {
 
             let id = object.id();
 
-            //get path from path_id
-
             npcs.push(Npc {name, id, x, y, direction, interaction, los, path_id});
         }
     }
@@ -324,7 +314,7 @@ impl Map {
 
             let location = match object.properties.get("location") {
                 Some(tiled::PropertyValue::IntValue(val)) => *val,
-                _ => 0, // Default direction
+                _ => 0,
             } as u32;
 
             doors.push(Door { rectangle, name, location });

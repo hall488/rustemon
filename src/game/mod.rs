@@ -4,10 +4,8 @@ mod map_loader;
 mod menu;
 mod pokemon;
 mod gamestate;
-mod encounter;
 mod running;
 mod paused;
-mod stationary_loader;
 mod party;
 mod font;
 mod moves;
@@ -21,29 +19,18 @@ use player::Player;
 use input_manager::InputManager;
 use crate::renderer::Renderer;
 use tiled::Loader;
-use std::collections::HashMap;
-use crate::renderer::image_loader;
-use crate::renderer::instance::Instance;
 use crate::game::gamestate::GameState;
 use crate::game::menu::Menu;
-//use crate::game::encounter::Encounter;
 use crate::game::battle::{Battle, BattleType};
 use pokemon::Pokemon;
 use party::Party;
 use crate::renderer::sprite::Sprite;
-use cgmath::{Matrix4, vec4, Vector4, Vector3};
+use cgmath:: Vector3;
 use npc::NPC;
 use entity::Entity;
-
-
-pub struct GAnimation {
-    pub frames: Vec<u32>,
-    pub frame_duration: Duration,
-    pub current_frame: u32,
-    pub instance: Instance,
-    pub time_accumulator: Duration,
-    pub looped: bool,
-}
+use animation_player::{Animation, AnimationSheet};
+use crate::audio::AudioPlayer;
+use rodio::OutputStream;
 
 pub enum Interaction {
     Heal,
@@ -56,7 +43,7 @@ pub struct Game {
     input_manager: InputManager,
     player: Player,
     map: map_loader::Map,
-    animations: Vec<GAnimation>,
+    foreground_animations: Vec<Animation>,
     state: GameState,
     time_of_last_update: Instant,
     pub menu: Menu,
@@ -65,10 +52,14 @@ pub struct Game {
     player_pokemon: Vec<Pokemon>,
     debug_background: Sprite,
     npcs: Vec<NPC>,
-    ground_animations: Vec<GAnimation>,
+    ground_animations: Vec<Animation>,
     queue_battle: (bool, (String, u32)),
     finished_battles: Vec<(String, u32)>, // (map_name, npc_id)
     trainer: Option<(String, u32)>,
+    audio_player: AudioPlayer,
+    //required to keep audio player alive
+    #[allow(dead_code)]
+    stream: OutputStream,
 }
 
 impl Game {
@@ -76,35 +67,34 @@ impl Game {
 
         let mut loader = Loader::new();
         let map_loader = loader.load_tmx_map("/home/chris/games/SirSquare/assets/landing.tmx").unwrap();
-        let map = map_loader::Map::new(&map_loader, 0);
+        let map = map_loader::Map::new(&map_loader, 0, "landing".to_string());
 
         let mut ground_animations = Vec::new();
 
         for animated in &map.animated {
-            ground_animations.push(GAnimation {
-                frames: animated.frames.clone(),
+
+            let sheet = AnimationSheet {
+                frame_width: 1,
+                frame_height: 1,
+                frame_order: vec![0, 1, 2, 3],
                 frame_duration: Duration::from_millis(250),
-                current_frame: 0,
-                instance: Instance {
-                    model: cgmath::Matrix4::from_translation(cgmath::Vector3::new(animated.x, animated.y, 0.0)).into(),
-                    tex_index: animated.frames[0] as u32,
-                    atlas_index: 0,
-                },
-                time_accumulator: Duration::from_millis(0),
+                atlas: renderer.get_atlas("landing").unwrap().clone(),
                 looped: true,
-            });
+            };
+
+            let position = Vector3::new(animated.x, animated.y, 0.0);
+            let animation = Animation::new(position, &sheet, 0, 9, 4, 1);
+
+            ground_animations.push(animation);
         }
 
-            //push 4 frames starting from object.id
         let menu = Menu::new(&mut loader, cgmath::Vector3::new(0.0, 0.0, 0.0));
 
         let mut player_pokemon = Vec::new();
 
-        let bulbasaur = Pokemon::new("Bulbasaur".to_string(), 100, renderer);
-        let charmander = Pokemon::new("Charmander".to_string(), 1, renderer);
+        let pikachu = Pokemon::new("Pikachu".to_string(), 5, renderer);
 
-        player_pokemon.push(bulbasaur);
-        player_pokemon.push(charmander);
+        player_pokemon.push(pikachu);
 
         let debug_background = renderer.create_sprite(0.5 + 6.0, 6.0, 0, 0, 15, 10, "debug", 1.0/240.0*15.0, 1.0/160.0*10.0).expect("");
 
@@ -134,11 +124,15 @@ impl Game {
             npcs.push(new_npc);
         }
 
+        let (_stream, stream_handle) = OutputStream::try_default().unwrap();
+        let mut audio_player = AudioPlayer::new(stream_handle);
+        audio_player.play("/home/chris/games/SirSquare/assets/Pallet Town.mp3");
+
         Self {
             input_manager: InputManager::new(),
             player: Player::new(renderer),
             map,
-            animations: Vec::new(),
+            foreground_animations: Vec::new(),
             state: GameState::Running,
             time_of_last_update: Instant::now(),
             menu,
@@ -151,11 +145,12 @@ impl Game {
             queue_battle: (false, ("".to_string(), 0)),
             finished_battles: Vec::new(),
             trainer: None,
+            audio_player,
+            stream: _stream,
         }
     }
 
     pub fn input(&mut self, event: &winit::event::KeyEvent) {
-        // Handle input
         self.input_manager.handle_input(&event);
     }
 
@@ -163,11 +158,6 @@ impl Game {
         let now = Instant::now();
         let dt = now.duration_since(self.time_of_last_update);
         self.time_of_last_update = now;
-
-        //if self.encounter.is_none() {
-        //    let pokemon = Pokemon::new("Charizard".to_string(), 5, renderer);
-        //    self.start_encounter(pokemon, renderer);
-        //}
 
         match self.state {
             GameState::Running => self.running(renderer, dt),
@@ -180,15 +170,19 @@ impl Game {
                             if encounter.battle_type == BattleType::Trainer {
                                 self.npc_defeated();
                             }
-
                         } else {
-                            //send to pokemon center
                             self.load_map("pokecenter", 1, renderer);
                             self.heal_pokemon();
                         }
 
                         self.encounter = None;
                         self.state = GameState::Running;
+
+                        match self.map.name.as_str() {
+                            "pokecenter" => self.audio_player.play("/home/chris/games/SirSquare/assets/Pokemon Center.mp3"),
+                            "gym" => self.audio_player.play("/home/chris/games/SirSquare/assets/Pokemon Gym.mp3"),
+                            _ => self.audio_player.play("/home/chris/games/SirSquare/assets/Pallet Town.mp3"),
+                        }
                     }
                 }
             },
@@ -201,7 +195,6 @@ impl Game {
                 }
             },
             GameState::Debug => {
-                // Add debug state
 
             },
         }
@@ -210,19 +203,18 @@ impl Game {
     pub fn draw(&mut self, renderer: &mut Renderer) {
         match self.state {
             GameState::Running | GameState::Paused => {
-                // Add instances for running and paused states
                 let mut instances = Vec::new();
                 instances.extend_from_slice(&self.map.background);
                 instances.extend_from_slice(&self.map.ground);
-                instances.extend_from_slice(&self.ground_animations.iter().map(|animation| animation.instance).collect::<Vec<Instance>>());
-                instances.extend_from_slice(&self.map.foreground);
 
-                //push animation player from player
-                //instances.extend_from_slice(&self.player.get_instances());
+                instances.extend(self.ground_animations.iter().flat_map(|animation| &animation.instances));
+
+                instances.extend_from_slice(&self.map.foreground);
 
                 let mut entities: Vec<&dyn Entity> = Vec::new();
                 entities.push(&self.player);
                 entities.extend(self.npcs.iter().map(|npc| npc as &dyn Entity));
+                entities.extend(self.foreground_animations.iter().map(|animation| animation as &dyn Entity));
 
                 entities.sort_by(|a, b| b.position().y.partial_cmp(&a.position().y).unwrap_or(std::cmp::Ordering::Equal));
 
@@ -230,7 +222,6 @@ impl Game {
                     instances.extend_from_slice(entity.instances());
                 }
 
-                instances.extend_from_slice(&self.animations.iter().map(|animation| animation.instance).collect::<Vec<Instance>>());
                 instances.extend_from_slice(&self.map.aboveground);
 
                 if self.state == GameState::Paused {
@@ -251,7 +242,6 @@ impl Game {
                 }
             },
             GameState::Debug => {
-                // Add debug state
                 let mut instances = Vec::new();
 
                 instances.extend_from_slice(&self.debug_background.texture);
@@ -262,16 +252,23 @@ impl Game {
     }
 
     pub fn start_encounter(&mut self, pokemon: Pokemon, renderer: &mut Renderer) {
-        let enemy_pokemon = vec![pokemon.clone()];  // Clone the enemy Pokémon
+        let enemy_pokemon = vec![pokemon.clone()];
 
-        // Pass the player's Pokémon by reference and the cloned enemy Pokémon by reference
         self.encounter = Some(Battle::new(BattleType::Wild, &mut self.player_pokemon, enemy_pokemon, renderer));
         self.state = GameState::Encounter;
+        self.audio_player.play("/home/chris/games/SirSquare/assets/Wild Battle.mp3");
     }
 
     pub fn start_battle(&mut self, npc_id: (String, u32), pokemon: Vec<Pokemon>, renderer: &mut Renderer) {
         self.encounter = Some(Battle::new(BattleType::Trainer, &mut self.player_pokemon, pokemon, renderer));
         self.state = GameState::Encounter;
+
+        if npc_id == ("gym".to_string(), 5) {
+            self.audio_player.play("/home/chris/games/SirSquare/assets/Gym Battle.mp3");
+        } else {
+            self.audio_player.play("/home/chris/games/SirSquare/assets/Trainer Battle.mp3");
+        }
+
         self.trainer = Some(npc_id);
     }
 
@@ -280,10 +277,9 @@ impl Game {
         let npc_id = self.trainer.clone().unwrap();
         println!("{:?}", npc_id);
 
-        // Make NPC defeated
         if let Some(npc) = self.npcs.iter_mut().find(|npc| npc.id == npc_id) {
             if let Interaction::Battle(ref mut battled, _) = npc.interaction {
-                *battled = true; // Mutate the boolean to mark battle as true
+                *battled = true;
             }
         }
         self.finished_battles.push(npc_id);

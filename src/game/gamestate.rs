@@ -5,4 +5,4 @@ pub enum GameState {
     Encounter,
     Party,
     Debug,
-}               //pritn each pokemon in the player's party
+}

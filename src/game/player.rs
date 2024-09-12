@@ -3,28 +3,22 @@ use crate::game::map_loader::Rectangle;
 use cgmath::{Vector3, Matrix4};
 use std::time::{Duration, Instant};
 use winit::keyboard::KeyCode;
-use crate::game::pokemon::Pokemon;
 use crate::game::entity::Entity;
 use crate::game::npc::NPC;
 use crate::game::animation_player::{AnimationPlayer, Animation, AnimationSheet};
 use crate::renderer::Renderer;
-use crate::renderer::texture_manager::Atlas;
 use std::collections::HashMap;
 
-use super::input_manager::{self, InputManager};
+use super::input_manager::InputManager;
 
-const GRID_SIZE: f32 = 1.0; // Define the grid size
-const MOVEMENT_DURATION_WALKING: Duration = Duration::from_millis(250); // Duration to move from one grid cell to another
-const MOVEMENT_DURATION_RUNNING: Duration = Duration::from_millis(125); // Duration to move from one grid cell to another
-const MOVEMENT_THRESHOLD: Duration = Duration::from_millis(100); // Threshold to check for movement input
-const ANIMATION_DURATION_WALKING: Duration = Duration::from_millis(125); // Duration to switch animation frames
-const ANIMATION_DURATION_RUNNING: Duration = Duration::from_millis(67); // Duration to switch animation frames
-
-//TODO FIX ANIMATION PLAYER IT CALLS PLAY ANIMATION EVERY FRAME ON COLLISIONS
-//I TOOK OUT THE PRINT STATEMENT CUZ IT GOT ANNOYING
+const GRID_SIZE: f32 = 1.0;
+const MOVEMENT_DURATION_WALKING: Duration = Duration::from_millis(250);
+const MOVEMENT_DURATION_RUNNING: Duration = Duration::from_millis(125);
+const MOVEMENT_THRESHOLD: Duration = Duration::from_millis(100);
+const ANIMATION_DURATION_WALKING: Duration = Duration::from_millis(125);
+const ANIMATION_DURATION_RUNNING: Duration = Duration::from_millis(67);
 
 pub struct Player {
-    pub instances: Vec<Instance>,
     pub position: Vector3<f32>,
     pub target_position: Vector3<f32>,
     pub movement_timer: Duration, // Timer to track movement duration
@@ -79,18 +73,6 @@ impl Player {
         };
 
         Self {
-            instances: vec![
-                Instance {
-                    model: Matrix4::from_translation(position).into(),
-                    tex_index: 4,
-                    atlas_index: 1,
-                },
-                Instance {
-                    model: Matrix4::from_translation(position + Vector3::new(0.0, 1.0, 0.0)).into(),
-                    tex_index: 1,
-                    atlas_index: 1,
-                }],
-
             position,
             target_position: position,
             movement_timer: Duration::new(0, 0),
@@ -157,8 +139,6 @@ impl Player {
             self.input_provided = false;
         }
 
-        // if player target position is the same as the current position, update the direction
-
         let time_held = Instant::now().duration_since(self.time_of_input);
 
         if self.target_position == self.position && self.input_provided && self.facing_direction != direction {
@@ -184,14 +164,7 @@ impl Player {
         }
     }
 
-    pub fn get_instances(&self) -> Vec<Instance> {
-        //get animation player instances
-        self.animation_player.get_instances().to_vec()
-    }
-
-
     pub fn update(&mut self, dt: Duration) {
-        // Calculate the elapsed time since the last update
 
         self.spot_arrival = false;
 
@@ -199,7 +172,6 @@ impl Player {
 
         if self.movement_timer > Duration::new(0, 0) {
             if dt >= self.movement_timer {
-                // Player has reached the target position
                 self.position = self.target_position;
                 self.movement_timer = Duration::new(0, 0);
                 self.spot_arrival = true;
@@ -212,8 +184,6 @@ impl Player {
 
         }
 
-        // Always update animation if playing
-        // Stop animation if no input is provided and the player has reached the target position
         if !self.input_provided && self.target_position == self.position && self.animation_player.playing{
             self.animation_player.stop();
         }
@@ -290,17 +260,15 @@ impl Player {
         }
 
         if !collision_detected {
-            // Only update direction and target position if no collision detected
             self.target_position = aligned_target_position;
             if self.running {
-                self.movement_timer = MOVEMENT_DURATION_RUNNING; // Reset the movement timer
+                self.movement_timer = MOVEMENT_DURATION_RUNNING;
             } else {
-                self.movement_timer = MOVEMENT_DURATION_WALKING; // Reset the movement timer
+                self.movement_timer = MOVEMENT_DURATION_WALKING;
             }
         }
 
 
-        // Set animation based on the target direction
         self.animation_player.start();
     }
 

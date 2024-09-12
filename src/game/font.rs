@@ -60,10 +60,8 @@ impl Font {
             };
 
             let pos_x = if left {
-                //x + i as f32 * 2.0 / 15.0 / 32.0 * 10.0
                 x + i as f32 * 5.0
             } else {
-                //x - i as f32 * 2.0 / 15.0 / 32.0 * 10.0
                 x - i as f32 * 5.0
             };
 
@@ -72,28 +70,8 @@ impl Font {
             let tex_y = tex_index / 28;
             let tex_w = 1;
             let tex_h = 1;
-            //let atlas_index = 9;
-            //let atlas_w = 28;
-            //let atlas_h = 4;
-            //let scale_x = 1.0 / 0.61;
-            //let scale_y = 1.0 / 2.91 * 1.6;
 
             let sprite = renderer.create_sprite(pos_x, pos_y, tex_x, tex_y, tex_w, tex_h, font_type, 1.0, 1.0).expect("");
-            //let sprite = Sprite::new(
-            //    pos_x,
-            //    pos_y,
-            //    tex_x,
-            //    tex_y,
-            //    tex_w,
-            //    tex_h,
-            //    atlas_index,
-            //    atlas_w,
-            //    atlas_h,
-            //    16,
-            //    16,
-            //    scale_x,
-            //    scale_y,
-            //);
 
             sprites.push(sprite);
         }

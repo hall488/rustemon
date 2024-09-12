@@ -1,5 +1,5 @@
 use std::time::Duration;
-use crate::game::{Game, GAnimation};
+use crate::game::Game;
 use crate::renderer::Renderer;
 use winit::keyboard::KeyCode;
 use tiled::Loader;
@@ -7,15 +7,14 @@ use crate::game::gamestate::GameState;
 use rand::Rng;
 use crate::game::pokemon::Pokemon;
 use crate::game::map_loader::{Door, Map, Grass};
-use crate::renderer::instance::Instance;
 use super::npc::{NPC, generate_pokemon};
 use crate::game::Interaction;
 use cgmath::Vector3;
+use crate::game::animation_player::{Animation, AnimationSheet};
 
 impl Game {
     pub fn running(&mut self, renderer: &mut Renderer, dt: Duration) {
         renderer.update(self.player.position);
-        // Handle game updates and input
 
         let last_key = self.input_manager.get_last_key();
         let single_press_key = self.input_manager.get_key_on_press();
@@ -61,9 +60,6 @@ impl Game {
                         self.queue_battle = (true, npc.id.clone());
                     }
 
-                    //if player is in front of battle npc and npc hasnt already battled then start
-                    //battle
-
                 }
 
                 _ => {}
@@ -72,17 +68,15 @@ impl Game {
 
         if self.queue_battle.0 {
             println!("Starting battle with {:?}", self.queue_battle.1);
-            //get npc by id
+
             let npc = self.npcs.iter_mut().find(|npc| npc.id == self.queue_battle.1).unwrap();
             npc.update(self.player.target_position, dt);
 
             if npc.position == npc.next_point {
-                let id = npc.id.clone();  // Clone only if necessary
+                let id = npc.id.clone();
 
-                // Start battle and push to finished battles
                 self.start_battle(id.clone(), generate_pokemon(id.0.clone(), id.1, renderer), renderer);
 
-                // Reset queue_battle
                 self.queue_battle = (false, ("".to_string(), 0));
             }
         } else {
@@ -92,7 +86,6 @@ impl Game {
                 npc.update(self.player.target_position, dt);
 
 
-                //if npc is of type battle(false)
                 if let Interaction::Battle(false, ref battle_squares) = npc.interaction {
 
                     if battle_squares.contains(&self.player.position) {
@@ -103,49 +96,21 @@ impl Game {
             }
         }
 
-        let mut animations_to_remove = Vec::new();
-        for (i, animation) in self.animations.iter_mut().enumerate() {
-            animation.time_accumulator += dt;
-            if animation.time_accumulator >= animation.frame_duration {
-                animation.time_accumulator -= animation.frame_duration;
-                animation.current_frame += 1;
-                if animation.current_frame >= animation.frames.len() as u32 {
-                    if animation.looped {
-                        animation.current_frame = 0;
-                    } else {
-                        animation.current_frame = animation.frames.len() as u32 - 1;
-                        animations_to_remove.push(i); // Mark this animation for removal
-                        continue;
-                    }
-                }
-                let index = animation.frames[animation.current_frame as usize];
-                animation.instance.tex_index = index;
-            }
+        //update animations
+        for animation in &mut self.ground_animations {
+            animation.update(animation.position, dt);
         }
 
-        let mut ground_animations_to_remove = Vec::new();
-        for (i, animation) in self.ground_animations.iter_mut().enumerate() {
-            animation.time_accumulator += dt;
-            if animation.time_accumulator >= animation.frame_duration {
-                animation.time_accumulator -= animation.frame_duration;
-                animation.current_frame += 1;
-                if animation.current_frame >= animation.frames.len() as u32 {
-                    if animation.looped {
-                        animation.current_frame = 0;
-                    } else {
-                        animation.current_frame = animation.frames.len() as u32 - 1;
-                        ground_animations_to_remove.push(i); // Mark this animation for removal
-                        continue;
-                    }
-                }
-                let index = animation.frames[animation.current_frame as usize];
-                animation.instance.tex_index = index;
+        let mut foreground_animations_to_remove = Vec::new();
+        for (i, animation) in self.foreground_animations.iter_mut().enumerate() {
+            if animation.update(animation.position, dt) {
+                foreground_animations_to_remove.push(i);
             }
         }
 
         // Remove finished animations
-        for &index in animations_to_remove.iter().rev() {
-            self.animations.remove(index);
+        for &index in foreground_animations_to_remove.iter().rev() {
+            self.foreground_animations.remove(index);
         }
 
         //for each door check if player collides with door
@@ -174,7 +139,6 @@ impl Game {
             self.load_map(&door.name, door.location, renderer);
         }
 
-        //check if player collides with grass
         let mut grass_detected: Option<Grass> = None;
 
         for grass in &self.map.grasses {
@@ -185,20 +149,20 @@ impl Game {
         }
 
         if let Some(grass) = grass_detected {
-            let animation = GAnimation {
-                frames: vec![5, 6, 7],
+            let sheet = AnimationSheet {
+                frame_width: 1,
+                frame_height: 1,
+                frame_order: vec![0, 1, 2],
                 frame_duration: Duration::from_millis(100),
+                atlas: renderer.get_atlas("landing").unwrap().clone(),
                 looped: false,
-                current_frame: 0,
-                instance: Instance {
-                    model: cgmath::Matrix4::from_translation(cgmath::Vector3::new(grass.x, grass.y, 0.0)).into(),
-                    tex_index: 5,
-                    atlas_index: 0,
-                },
-                time_accumulator: Duration::from_millis(0),
             };
 
-            self.animations.push(animation);
+            let position = cgmath::Vector3::new(grass.x, grass.y, 0.0);
+
+            let animation = Animation::new(position, &sheet, 5, 0, 3, 1);
+
+            self.foreground_animations.push(animation);
 
             let mut rng = rand::thread_rng();
             let random_number = rng.gen_range(0..8);
@@ -233,26 +197,27 @@ impl Game {
         let map_path = format!("/home/chris/games/SirSquare/assets/{}.tmx", map_name);
         let map_loader = loader.load_tmx_map(map_path).unwrap();
 
-        self.map = Map::new(&map_loader, 0);
+        self.map = Map::new(&map_loader, 0, map_name.to_string());
 
         let _ = renderer.update_texture(0, map_name, 16, 16);
 
-        self.animations = Vec::new();
         let mut ground_animations = Vec::new();
 
         for animated in &self.map.animated {
-            ground_animations.push(GAnimation {
-                frames: animated.frames.clone(),
+
+            let sheet = AnimationSheet {
+                frame_width: 1,
+                frame_height: 1,
+                frame_order: vec![0, 1, 2, 3],
                 frame_duration: Duration::from_millis(250),
-                current_frame: 0,
-                instance: Instance {
-                    model: cgmath::Matrix4::from_translation(cgmath::Vector3::new(animated.x, animated.y, 0.0)).into(),
-                    tex_index: animated.frames[0] as u32,
-                    atlas_index: 0,
-                },
-                time_accumulator: Duration::from_millis(0),
+                atlas: renderer.get_atlas("landing").unwrap().clone(),
                 looped: true,
-            });
+            };
+
+            let position = Vector3::new(animated.x, animated.y, 0.0);
+            let animation = Animation::new(position, &sheet, 0, 9, 4, 1);
+
+            ground_animations.push(animation);
         }
 
         self.ground_animations = ground_animations;
@@ -292,6 +257,12 @@ impl Game {
             let new_npc = NPC::new((map_name.to_string(), npc.id), position, npc.direction, &npc.name, interaction, npc.los, path, renderer);
 
             self.npcs.push(new_npc);
+        }
+
+        match map_name {
+            "pokecenter" => self.audio_player.play("/home/chris/games/SirSquare/assets/Pokemon Center.mp3"),
+            "gym" => self.audio_player.play("/home/chris/games/SirSquare/assets/Pokemon Gym.mp3"),
+            _ => self.audio_player.play("/home/chris/games/SirSquare/assets/Pallet Town.mp3"),
         }
 
     }

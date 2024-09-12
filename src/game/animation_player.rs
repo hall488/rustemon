@@ -3,6 +3,7 @@ use cgmath::Vector3;
 use crate::renderer::instance::Instance;
 use crate::renderer::texture_manager::Atlas;
 use std::collections::HashMap;
+use crate::game::entity::Entity;
 
 pub struct AnimationPlayer {
     pub playing: bool,
@@ -28,6 +29,17 @@ pub struct Animation {
     pub frame_order: Vec<usize>,
     pub instances: Vec<Instance>,
     pub frame_width: u32,
+    pub position: Vector3<f32>,
+}
+
+impl Entity for Animation {
+    fn position(&self) -> Vector3<f32> {
+        self.position
+    }
+
+    fn instances(&self) -> &[Instance] {
+        &self.instances
+    }
 }
 
 impl Animation {
@@ -71,13 +83,14 @@ impl Animation {
 
         let mut instances = Vec::new();
 
+        let len = frame_width * frame_height - 1;
         for h in 0..*frame_height {
             for w in 0..*frame_width {
                 let xo = selection_x + w;
                 let yo = selection_y + h;
 
-                let x = position.x + w as f32;
-                let y = position.y - h as f32 + 1.0;
+                let x = position.x;
+                let y = position.y - h as f32 + len as f32;
 
                 let index = xo + yo * atlas.cols + frame_order[0] as u32;
 
@@ -98,10 +111,16 @@ impl Animation {
             frame_order: frame_order.to_vec(),
             instances,
             frame_width: *frame_width,
+            position,
         }
     }
 
-    pub fn update(&mut self, position: Vector3<f32>, dt: Duration) {
+    pub fn update(&mut self, position: Vector3<f32>, dt: Duration) -> bool {
+
+        if !self.looped && self.current_frame == self.frame_order.len() - 1 {
+            return true;
+        }
+
         self.time_accumulator += dt;
         if self.time_accumulator >= self.frame_duration {
             self.time_accumulator -= self.frame_duration; // Subtract to prevent frame skip
@@ -120,15 +139,21 @@ impl Animation {
         }
 
         // Loop over frames with index
+        let len = self.instances.len() - 1;
+        println!("len: {}", len);
         for (i, instance) in self.instances.iter_mut().enumerate() {
             let xo = i % self.frame_width as usize;
             let yo = i / self.frame_width as usize;
 
             let x = position.x + xo as f32;
-            let y = position.y - yo as f32 + 1.0;
+            let y = position.y - yo as f32 + len as f32;
 
             instance.model = cgmath::Matrix4::from_translation(cgmath::Vector3::new(x, y, 0.0)).into();
         }
+
+        self.position = position;
+
+        return false;
     }
 
     pub fn go_to_first_frame(&mut self) {

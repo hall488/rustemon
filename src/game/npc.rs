@@ -106,9 +106,6 @@ impl NPC {
             path.push(first_point);
         }
 
-        //only set next point if path is not empty
-        //otherwise it will be set to the current position
-
         let next_point = path.as_ref().map_or(position, |p| p[0]);
 
         Self {
@@ -135,7 +132,6 @@ impl NPC {
 
         if self.movement_timer > Duration::new(0, 0) {
             if dt >= self.movement_timer {
-                // NPC has reached the target position
                 self.position = self.target_position;
                 self.movement_timer = Duration::new(0, 0);
             } else {
@@ -172,10 +168,8 @@ impl NPC {
                 self.target_position = self.position + self.direction;
             }
 
-            // Adjust the movement timer based on the grid distance
             self.movement_timer = MOVEMENT_DURATION_WALKING;
 
-            // Set appropriate animation based on direction
             let direction_name = match self.direction {
                 Vector3 { x: 0.0, y: -1.0, z: 0.0 } => "down",
                 Vector3 { x: 0.0, y: 1.0, z: 0.0 } => "up",

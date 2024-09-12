@@ -1,4 +1,3 @@
-use crate::renderer::instance::Instance;
 use super::moves::Move;
 use crate::renderer::sprite::Sprite;
 use crate::renderer::Renderer;
@@ -9,7 +8,7 @@ pub struct Pokemon {
     pub level: u32,
     pub current_hp: u32,
     pub stats: Stats,
-    pub base_stats: Stats,  // Added to store the base stats for calculation
+    pub base_stats: Stats,
     pub back_sprite: Sprite,
     pub front_sprite: Sprite,
     pub id: u32,
@@ -1176,7 +1175,6 @@ impl Stats {
         }
     }
 
-    // Calculate stats based on base stats and level
     pub fn calculate(base_stats: &Stats, level: u32) -> Self {
         let hp = ((base_stats.hp * 2 * level) / 100) + level + 10;
         let attack = ((base_stats.attack * 2 * level) / 100) + 5;

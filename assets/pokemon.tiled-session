@@ -12,8 +12,8 @@
             "scale": 2.935104166666666,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 3537.6938637896164,
-                "y": 2910.629236611421
+                "x": 3770.3942932178734,
+                "y": 3055.4281861092386
             }
         },
         "battle.tsx": {
@@ -21,9 +21,9 @@
         },
         "gym.tmx": {
             "expandedObjectLayers": [
-                5,
+                4,
                 7,
-                4
+                5
             ],
             "scale": 2.8988,
             "selectedLayer": 4,
@@ -54,11 +54,11 @@
         },
         "landing.tmx": {
             "expandedObjectLayers": [
-                11,
-                16,
-                13,
                 19,
-                20
+                20,
+                13,
+                16,
+                11
             ],
             "scale": 4,
             "selectedLayer": 9,
@@ -101,10 +101,10 @@
         },
         "pokecenter.tmx": {
             "expandedObjectLayers": [
-                11,
-                8,
                 9,
-                7
+                8,
+                7,
+                11
             ],
             "scale": 5.5536,
             "selectedLayer": 6,

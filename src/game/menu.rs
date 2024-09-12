@@ -9,7 +9,6 @@ pub enum MenuAction {
     Pokemon,
     Save,
     Exit,
-    // Add other actions here
 }
 
 impl MenuAction {
@@ -27,7 +26,6 @@ impl MenuAction {
                 println!("Exit action");
                 GameState::Running
             },
-            // Implement other actions here
         }
     }
 }
@@ -88,7 +86,6 @@ impl Menu {
     pub fn update(&mut self, input_manager: &mut InputManager, player: &Player ) -> GameState {
         let release_key = input_manager.get_key_on_press();
 
-        // Update menu instances positions
         for (i, offset) in self.offsets.iter().enumerate() {
             let model = cgmath::Matrix4::from_translation(cgmath::Vector3::new(
                 player.position.x + offset.x + 3.0,
