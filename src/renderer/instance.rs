@@ -2,7 +2,7 @@
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct Instance {
     pub model: [[f32; 4]; 4],
-    pub tex_index: u32, // Texture index
+    pub tex_index: u32,
     pub atlas_index: u32,
 }
 

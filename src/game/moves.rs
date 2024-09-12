@@ -48,7 +48,7 @@ impl Move {
             "Water Gun" => (Type::Water, 40, 100, 25, AttackType::Special),
             "Hydro Pump" => (Type::Water, 110, 80, 5, AttackType::Special),
             "Withdraw" => (Type::Water, 0, 100, 40, AttackType::Status),
-            "Thunder Shock" => (Type::Electric, 40, 100, 30, AttackType::Special),
+            "Thundershock" => (Type::Electric, 40, 100, 30, AttackType::Special),
             "Thunderbolt" => (Type::Electric, 90, 100, 15, AttackType::Special),
             "Quick Attack" => (Type::Normal, 40, 100, 30, AttackType::Physical),
             "Thunder Wave" => (Type::Electric, 0, 90, 20, AttackType::Status),

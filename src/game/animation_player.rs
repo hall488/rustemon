@@ -140,7 +140,6 @@ impl Animation {
 
         // Loop over frames with index
         let len = self.instances.len() - 1;
-        println!("len: {}", len);
         for (i, instance) in self.instances.iter_mut().enumerate() {
             let xo = i % self.frame_width as usize;
             let yo = i / self.frame_width as usize;

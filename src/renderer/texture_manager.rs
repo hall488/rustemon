@@ -2,8 +2,6 @@ use anyhow::*;
 use image::GenericImageView;
 use wgpu::util::DeviceExt;
 use std::time::Instant;
-use std::fs::File;
-use std::io::{BufReader, Read};
 use super::image_loader::ImageData;
 use std::fmt;
 
@@ -110,7 +108,6 @@ impl TextureManager {
             label: Some("texture_array_bind_group_layout"),
         });
 
-        // Initialize atlas infos with the maximum number of textures
         let atlas_infos = vec![
             AtlasInfo {
                 atlas_width: 0,
@@ -161,61 +158,6 @@ impl TextureManager {
             atlas_info_buffer,
             texture_size,
         }
-    }
-
-    pub fn load_single(&mut self, texture_path: &str , queue: &wgpu::Queue, device: &wgpu::Device) -> Result<()> {
-        let img = image::open(texture_path).context("Failed to open texture image")?;
-        let rgba = img.to_rgba8();
-        let dimensions = img.dimensions();
-
-        // Ensure we do not exceed the maximum number of textures in the array
-        assert!(self.next_layer_index < self.texture_array.size().depth_or_array_layers);
-
-        // Upload the texture data to the texture array
-        queue.write_texture(
-            wgpu::ImageCopyTexture {
-                texture: &self.texture_array,
-                mip_level: 0,
-                origin: wgpu::Origin3d {
-                    x: 0,
-                    y: 0,
-                    z: self.next_layer_index,
-                },
-                aspect: wgpu::TextureAspect::All,
-            },
-            &rgba,
-            wgpu::ImageDataLayout {
-                offset: 0,
-                bytes_per_row: Some(4 * dimensions.0),
-                rows_per_image: Some(dimensions.1),
-            },
-            wgpu::Extent3d {
-                width: dimensions.0,
-                height: dimensions.1,
-                depth_or_array_layers: 1,
-            },
-        );
-
-        // Update the atlas info map and buffer
-        // account for texture size of the texture array
-        let atlas_info = AtlasInfo {
-            atlas_width: dimensions.0,
-            atlas_height: dimensions.1,
-            tile_width: dimensions.0, // Fixed texture width
-            tile_height: dimensions.1, // Fixed texture height
-            texture_width: self.texture_size.0,
-            texture_height: self.texture_size.1,
-            _padding: 0,
-            _padding2: 0,
-        };
-
-        self.atlas_infos[self.next_layer_index as usize] = atlas_info;
-
-        // Update the buffer with the new atlas info
-        queue.write_buffer(&self.atlas_info_buffer, 0, bytemuck::cast_slice(&self.atlas_infos));
-
-        self.next_layer_index += 1;
-        Ok(())
     }
 
     pub fn load_texture(&mut self, texture_path: &str, tile_width: u32, tile_height: u32, queue: &wgpu::Queue, device: &wgpu::Device) -> Result<Atlas> {
@@ -348,9 +290,5 @@ impl TextureManager {
             index: layer_index,
         };
         Ok(atlas)
-    }
-
-    pub fn get_bind_group(&self) -> &wgpu::BindGroup {
-        &self.bind_group
     }
 }

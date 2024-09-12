@@ -106,7 +106,7 @@ impl Battle {
 
     pub fn update(&mut self, player_party: &mut Vec<Pokemon>, input_manager: &mut InputManager, dt: Duration, renderer: &mut Renderer) -> Option<bool> {
         // Handle encounter updates and input
-        renderer.camera_controller.update_camera(&mut renderer.camera, cgmath::Vector3::new(0.0, 0.0, 0.0));
+        renderer.camera.update_camera(cgmath::Vector3::new(0.0, 0.0, 0.0));
 
         match self.battle_state {
             BattleState::PlayerTurn => {

@@ -62,10 +62,8 @@ impl ApplicationHandler for App {
                 event_loop.exit();
             },
             WindowEvent::KeyboardInput { event , .. } => {
-                if let (Some(game), Some(renderer)) = (&mut self.game, &mut self.renderer) {
-                    //handle game input
+                if let Some(game) = &mut self.game {
                     game.input(&event);
-                    //renderer.camera_controller.process_events(&event);
                 }
             }
             WindowEvent::RedrawRequested => {

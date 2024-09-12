@@ -21,8 +21,4 @@ impl WindowMapUniform {
             ortho_proj: orthographic_projection(width, height),
         }
     }
-
-    pub fn update_ortho_proj(&mut self, width: f32, height: f32) {
-        self.ortho_proj = orthographic_projection(width, height);
-    }
 }

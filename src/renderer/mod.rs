@@ -1,4 +1,4 @@
-use std::{any::Any, iter};
+use std::iter;
 use anyhow::*;
 use std::sync::Arc;
 use wgpu::util::DeviceExt;
@@ -7,7 +7,6 @@ use camera::{Camera, CameraUniform, ConfigUniform};
 use instance::Instance;
 use pipeline::create_pipeline;
 use texture_manager::{TextureManager, Atlas};
-use image_loader::ImageData;
 use std::collections::HashMap;
 use sprite::Sprite;
 use window_map::WindowMapUniform;
@@ -37,7 +36,6 @@ pub struct Renderer {
     camera_buffer: wgpu::Buffer,
     config_buffer: wgpu::Buffer,
     camera_bind_group: wgpu::BindGroup,
-    pub camera_controller: camera::CameraController,
     instance_buffer: wgpu::Buffer,
     num_instances: u32,
     staging_buffer: wgpu::Buffer,
@@ -90,7 +88,7 @@ impl Renderer {
                         limits
                     },
                 },
-                None, // Trace path
+                None,
             )
             .await
             .unwrap();
@@ -114,9 +112,6 @@ impl Renderer {
         };
 
         surface.configure(&device, &config);
-
-        //let diffuse_bytes = include_bytes!("/home/chris/Downloads/pokemon_johto_ts.png");
-        //let diffuse_texture = texture::Texture::from_bytes(&device, &queue, diffuse_bytes, "diffuse_texture").unwrap();
 
         let mut texture_manager = TextureManager::new(&device, &queue, 16, (1024, 8000));
         let mut texture_map = HashMap::new();
@@ -145,16 +140,14 @@ impl Renderer {
 
         let camera = Camera {
             eye: (0.0, 0.0, 949.0).into(),
-            // have it look at the origin
             target: (0.0, 0.0, 0.0).into(),
-            // which way is "up"
             up: cgmath::Vector3::unit_y(),
-            left: -0.5, // Left bound of the field
-            right: 0.5, // Right bound of the field
-            bottom: -0.5, // Bottom bound of the field
-            top: 0.5, // Top bound of the field
-            znear: 0.1, // Near clipping plane
-            zfar: 100.0, // Far clipping plane
+            left: -0.5,
+            right: 0.5,
+            bottom: -0.5,
+            top: 0.5,
+            znear: 0.1,
+            zfar: 100.0,
             aspect: 240.0 / 160.0,
         };
 
@@ -221,10 +214,8 @@ impl Renderer {
             label: Some("camera_bind_group"),
         });
 
-        let camera_controller = camera::CameraController::new(1.0);
 
         println!("Window size: {:?}", size);
-        // Initialize the WindowMapUniform
         let window_map_uniform = WindowMapUniform::new(size.width as f32, size.height as f32);
 
         let window_map_buffer = device.create_buffer_init(
@@ -294,8 +285,7 @@ impl Renderer {
 
 
         let mut instances : Vec<Instance> = Vec::new();
-        //print name of each layer
-        //for each layer in layers
+
         instances.push(Instance {
             model: cgmath::Matrix4::from_translation(cgmath::Vector3::new(0.0, 0.0, 0.0)).into(),
             tex_index: 1,
@@ -344,7 +334,6 @@ impl Renderer {
             config_buffer,
             camera_buffer,
             camera_bind_group,
-            camera_controller,
             instance_buffer,
             num_instances,
             staging_buffer,
@@ -372,7 +361,6 @@ impl Renderer {
         let atlas = self.texture_map.get(texture_name)
             .ok_or_else(|| anyhow!("Texture name not found"))?;
 
-        //println!("Atlas: {:?}", atlas);
         Ok(Sprite::new(
             x,
             y,
@@ -396,11 +384,6 @@ impl Renderer {
         Ok(atlas)
     }
 
-    pub fn load_texture(&mut self, texture_path: &str) -> Result<Atlas> {
-        let idx = self.texture_manager.load_texture(texture_path, 16, 16, &self.queue, &self.device)?;
-        Ok(idx)
-    }
-
     pub fn update_texture(&mut self, atlas_index: u32, name: &str, grid_w: u32, grid_h: u32) -> Result<()> {
         //remove previous texture at atlas index from texture map
 
@@ -410,11 +393,6 @@ impl Renderer {
         println!("{}", atlas);
         self.texture_map.insert(name.to_string(), atlas);
 
-        Ok(())
-    }
-
-    pub fn load_single(&mut self, texture_path: &str) -> Result<()> {
-        let _ = self.texture_manager.load_single(texture_path, &self.queue, &self.device);
         Ok(())
     }
 
@@ -428,7 +406,7 @@ impl Renderer {
     }
 
     pub fn update(&mut self, position: cgmath::Vector3<f32>) {
-        self.camera_controller.update_camera(&mut self.camera, position);
+        self.camera.update_camera(position);
         self.camera_uniform.update_view_proj(&self.camera);
         self.queue.write_buffer(&self.camera_buffer, 0, bytemuck::cast_slice(&[self.camera_uniform]));
         self.queue.write_buffer(&self.window_map_buffer, 0, bytemuck::cast_slice(&[self.window_map_uniform]));
@@ -531,7 +509,6 @@ impl Renderer {
                 render_pass.set_viewport(0.0, y_offset, self.size.width as f32, new_height, 0.0, 1.0);
             }
 
-            // Ensure the correct bind group is set
             render_pass.set_pipeline(&self.render_pipeline);
             render_pass.set_bind_group(0, &self.texture_manager.bind_group, &[]);
             render_pass.set_bind_group(1, &self.camera_bind_group, &[]);

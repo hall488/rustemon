@@ -1,6 +1,4 @@
 use cgmath::{ortho, Matrix4, Point3, Vector3};
-use winit::event::{KeyEvent, ElementState};
-use winit::keyboard::{PhysicalKey, KeyCode};
 
 pub const OPENGL_TO_WGPU_MATRIX: Matrix4<f32> = Matrix4::new(
     1.0, 0.0, 0.0, 0.0,
@@ -27,6 +25,11 @@ impl Camera {
         let view = Matrix4::look_at_rh(self.eye, self.target, self.up);
         let proj = ortho(self.left * self.aspect, self.right * self.aspect, self.bottom, self.top, self.znear, self.zfar);
         return OPENGL_TO_WGPU_MATRIX * proj * view;
+    }
+
+    pub fn update_camera(&mut self, position: Vector3<f32>) {
+        self.target = Point3::new(position.x, position.y, self.target.z).into();
+        self.eye = Point3::new(position.x, position.y, self.eye.z).into();
     }
 }
 
@@ -58,90 +61,4 @@ impl CameraUniform {
     pub fn update_view_proj(&mut self, camera: &Camera) {
         self.view_proj = camera.build_view_projection_matrix().into();
     }
-}
-
-pub struct CameraController {
-    speed: f32,
-    is_forward_pressed: bool,
-    is_backward_pressed: bool,
-    is_left_pressed: bool,
-    is_right_pressed: bool,
-    is_z_pressed: bool,
-    is_x_pressed: bool,
-}
-
-impl CameraController {
-    pub fn new(speed: f32) -> Self {
-        Self {
-            speed,
-            is_forward_pressed: false,
-            is_backward_pressed: false,
-            is_left_pressed: false,
-            is_right_pressed: false,
-            is_z_pressed: false,
-            is_x_pressed: false,
-        }
-    }
-
-    pub fn process_events(&mut self, event: &KeyEvent) -> bool {
-
-        let keycode = match event.physical_key {
-            PhysicalKey::Code(keycode) => keycode,
-            PhysicalKey::Unidentified(_) => return false,
-        };
-
-        let state = &event.state;
-
-        let is_pressed = *state == ElementState::Pressed;
-        match keycode {
-            KeyCode::KeyW | KeyCode::ArrowUp => {
-                self.is_forward_pressed = is_pressed;
-                true
-            }
-            KeyCode::KeyA | KeyCode::ArrowLeft => {
-                self.is_left_pressed = is_pressed;
-                true
-            }
-            KeyCode::KeyS | KeyCode::ArrowDown => {
-                self.is_backward_pressed = is_pressed;
-                true
-            }
-            KeyCode::KeyD | KeyCode::ArrowRight => {
-                self.is_right_pressed = is_pressed;
-                true
-            }
-            KeyCode::KeyZ => {
-                self.is_z_pressed = is_pressed;
-                true
-            }
-            KeyCode::KeyX => {
-                self.is_x_pressed = is_pressed;
-                true
-            }
-            _ => false,
-        }
-
-    }
-
-    pub fn update_camera(&self, camera: &mut Camera, position: Vector3<f32>) {
-        use cgmath::InnerSpace;
-        let forward = camera.target - camera.eye;
-        let forward_norm = forward.normalize();
-        let forward_mag = forward.magnitude();
-
-        // Prevents glitching when the camera gets too close to the
-        // center of the scene.
-        if self.is_z_pressed && forward_mag > self.speed {
-            camera.eye += forward_norm * self.speed;
-        }
-        if self.is_x_pressed{
-            camera.eye -= forward_norm * self.speed;
-        }
-
-        camera.target = Point3::new(position.x, position.y, camera.target.z).into();
-        camera.eye = Point3::new(position.x, position.y, camera.eye.z).into();
-
-    }
-
-
 }
